@@ -40,6 +40,9 @@ class LynoxEngine(
     private val playlistEntriesCache = LruTtlCache<String, SearchPage<PlaylistEntry>>(config.maxCacheEntries, config.cacheTtl)
 
     suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
+        if (request.pageSize !in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
+            return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
+        }
         if (request.query.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Search query cannot be blank"))
         }
