@@ -1,6 +1,11 @@
 package dev.lynox.engine
 
 import dev.lynox.engine.config.LynoxConfig
+import dev.lynox.engine.catalog.CatalogProvider
+import dev.lynox.engine.catalog.CatalogRequest
+import dev.lynox.engine.catalog.Channel
+import dev.lynox.engine.catalog.Playlist
+import dev.lynox.engine.catalog.PlaylistEntry
 import dev.lynox.engine.model.EngineError
 import dev.lynox.engine.model.EngineResult
 import dev.lynox.engine.model.MediaItem
@@ -69,4 +74,43 @@ class LynoxEngineCacheTest {
         assertIs<EngineResult.Success<*>>(engine.getMediaInfo("video-1"))
         assertEquals(1, calls)
     }
+    @Test
+    fun catalogOperationsAreExposedThroughEngine() = runBlocking {
+        var receivedQuery: String? = null
+        val catalog = object : CatalogProvider {
+            override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
+                receivedQuery = request.query
+                return EngineResult.Success(SearchPage(listOf(Channel("channel-1", "Channel"))))
+            }
+
+            override suspend fun getChannel(channelId: String): EngineResult<Channel> =
+                EngineResult.Success(Channel(channelId, "Channel"))
+
+            override suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> =
+                EngineResult.Success(SearchPage(listOf(Playlist("playlist-1", "Playlist"))))
+
+            override suspend fun getPlaylist(playlistId: String): EngineResult<Playlist> =
+                EngineResult.Success(Playlist(playlistId, "Playlist"))
+
+            override suspend fun getPlaylistEntries(
+                playlistId: String,
+                request: CatalogRequest
+            ): EngineResult<SearchPage<PlaylistEntry>> =
+                EngineResult.Success(SearchPage(listOf(PlaylistEntry("entry-1", "video-1", "Video"))))
+        }
+        val engine = LynoxEngine(catalogProvider = catalog)
+
+        val channels = assertIs<EngineResult.Success<*>>(
+            engine.searchChannels(CatalogRequest(query = "  science  "))
+        )
+        assertEquals("science", receivedQuery)
+        assertEquals("channel-1", (channels.value as SearchPage<*>).items.single().let { (it as Channel).id })
+
+        val playlist = assertIs<EngineResult.Success<*>>(engine.getPlaylist(" playlist-1 "))
+        assertEquals("playlist-1", (playlist.value as Playlist).id)
+
+        val entries = assertIs<EngineResult.Success<*>>(engine.getPlaylistEntries(" playlist-1 "))
+        assertEquals("video-1", ((entries.value as SearchPage<*>).items.single() as PlaylistEntry).mediaId)
+    }
+
 }
