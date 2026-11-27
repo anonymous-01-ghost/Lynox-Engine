@@ -45,12 +45,8 @@ Create one application-scoped client rather than a new client for every resoluti
         }
     }
 
-Add the matching Ktor engine dependency to the consuming app if it creates the client. Keep versions aligned with the library and close the client exactly once.
+Add the matching Ktor engine dependency to the consuming app if it creates the client. Keep versions aligned with the app and close the client exactly once.
 
 ## Source adapter responsibilities
 
 A MediaResolver implementation may receive an injected HttpClient, but the generic contract does not mandate Ktor or a particular network strategy. The adapter is responsible for source-specific redirects, headers, parsing, retries, expiration and refresh behavior. Never log authorization headers, cookies, tokens or signed URLs.
-
-## Optional legacy metadata providers
-
-The repository retains optional YouTube Data API adapters for search and metadata only. They require an API key if explicitly used, but they are not part of the extractor core and do not resolve media streams.
