@@ -15,7 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.time.Duration.Companion.minutes
 
 class LynoxEngineCacheTest {
@@ -27,7 +27,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun successfulSearchIsCachedUntilCacheIsCleared() = runBlocking {
+    fun successfulSearchIsCachedUntilCacheIsCleared() = runTest {
         var calls = 0
         val provider = object : SearchProvider {
             override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
@@ -51,7 +51,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun videoSearchNormalizesQueryBeforeProviderAndCacheLookup() = runBlocking {
+    fun videoSearchNormalizesQueryBeforeProviderAndCacheLookup() = runTest {
         var calls = 0
         var receivedQuery: String? = null
         val provider = object : SearchProvider {
@@ -71,7 +71,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun searchCacheDoesNotCollideWhenQueryAndPageTokenContainSeparators() = runBlocking {
+    fun searchCacheDoesNotCollideWhenQueryAndPageTokenContainSeparators() = runTest {
         var calls = 0
         val provider = object : SearchProvider {
             override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
@@ -94,7 +94,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun failedSearchIsNotCached() = runBlocking {
+    fun failedSearchIsNotCached() = runTest {
         var calls = 0
         val provider = object : SearchProvider {
             override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
@@ -111,7 +111,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun metadataIsCachedByNormalizedId() = runBlocking {
+    fun metadataIsCachedByNormalizedId() = runTest {
         var calls = 0
         val provider = object : MetadataProvider {
             override suspend fun getMediaInfo(mediaId: String): EngineResult<MediaItem> {
@@ -126,7 +126,7 @@ class LynoxEngineCacheTest {
         assertEquals(1, calls)
     }
     @Test
-    fun successfulCatalogSearchIsCachedAndCleared() = runBlocking {
+    fun successfulCatalogSearchIsCachedAndCleared() = runTest {
         var calls = 0
         val catalog = object : CatalogProvider {
             override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
@@ -152,7 +152,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun playlistEntriesCacheIsScopedToPlaylistIdAndOpaquePageToken() = runBlocking {
+    fun playlistEntriesCacheIsScopedToPlaylistIdAndOpaquePageToken() = runTest {
         var calls = 0
         val catalog = object : CatalogProvider {
             override suspend fun searchChannels(request: CatalogRequest) =
@@ -192,7 +192,7 @@ class LynoxEngineCacheTest {
     }
 
     @Test
-    fun catalogOperationsAreExposedThroughEngine() = runBlocking {
+    fun catalogOperationsAreExposedThroughEngine() = runTest {
         var receivedQuery: String? = null
         val catalog = object : CatalogProvider {
             override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
