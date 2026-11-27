@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
@@ -16,14 +18,12 @@ kotlin {
 
     jvm()
 
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-
-    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
-        binaries.framework {
+    val lynoxXCFramework = XCFramework("LynoxEngine")
+    listOf(iosArm64(), iosSimulatorArm64(), iosX64()).forEach { target ->
+        target.binaries.framework {
             baseName = "LynoxEngine"
             isStatic = true
+            lynoxXCFramework.add(this)
         }
     }
 
