@@ -139,7 +139,8 @@ class YouTubeDataApiProvider(
         throw cancelled
     } catch (error: Exception) {
         EngineResult.Failure(
-            EngineError.Network(error.message?.takeIf { it.isNotBlank() })
+            // Avoid exposing request URLs, which can contain the API key, in error messages.
+            EngineError.Network("YouTube Data API request failed")
         )
     }
 
