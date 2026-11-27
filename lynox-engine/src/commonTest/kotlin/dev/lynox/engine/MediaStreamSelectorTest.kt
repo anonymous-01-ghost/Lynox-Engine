@@ -63,6 +63,26 @@ class MediaStreamSelectorTest {
     }
 
     @Test
+    fun enforcesMaximumBitrateAndExcludesUnknownBitrate() {
+        val unknown = MediaStream(
+            url = "https://cdn.test/unknown.m4a",
+            kind = MediaStreamKind.AUDIO,
+            mimeType = "audio/mp4"
+        )
+        val tooHigh = audio("https://cdn.test/high.m4a", 320_000)
+        val withinLimit = audio("https://cdn.test/within.m4a", 128_000)
+
+        val result = assertIs<EngineResult.Success<MediaStream>>(
+            selector.select(
+                listOf(unknown, tooHigh, withinLimit),
+                MediaSelectionRequest(maxBitrate = 160_000)
+            )
+        )
+
+        assertEquals(withinLimit.url, result.value.url)
+    }
+
+    @Test
     fun returnsFailureWhenNoRenditionMatches() {
         val result = assertIs<EngineResult.Failure>(
             selector.select(
