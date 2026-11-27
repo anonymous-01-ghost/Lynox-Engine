@@ -118,7 +118,7 @@ class YouTubeDataApiProviderTest {
     fun quotaErrorsAreMappedToTypedFailure() = runBlocking {
         val client = HttpClient(MockEngine {
             respond(
-                content = """{"error":{"message":"Quota exceeded"}}""",
+                content = """{"error":{"errors":[{"reason":"quotaExceeded"}],"message":"Daily quota exhausted"}}""",
                 status = HttpStatusCode.Forbidden,
                 headers = jsonHeaders()
             )
@@ -129,6 +129,26 @@ class YouTubeDataApiProviderTest {
 
         val failure = assertIs<EngineResult.Failure>(result)
         assertIs<dev.lynox.engine.model.EngineError.QuotaExceeded>(failure.error)
+        client.close()
+    }
+
+
+    @Test
+    fun apiNotEnabledIsNotMisclassifiedAsQuota() = runBlocking {
+        val client = HttpClient(MockEngine {
+            respond(
+                content = """{"error":{"errors":[{"reason":"accessNotConfigured"}],"message":"quota is mentioned in unrelated text"}}""",
+                status = HttpStatusCode.Forbidden,
+                headers = jsonHeaders()
+            )
+        })
+        val provider = YouTubeDataApiProvider(client, "test-key")
+
+        val result = provider.search(SearchRequest("example"))
+
+        val failure = assertIs<EngineResult.Failure>(result)
+        val error = assertIs<dev.lynox.engine.model.EngineError.ProviderFailure>(failure.error)
+        assertEquals("API_NOT_ENABLED", error.code)
         client.close()
     }
 
