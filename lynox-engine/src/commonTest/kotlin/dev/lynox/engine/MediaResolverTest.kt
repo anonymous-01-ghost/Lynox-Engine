@@ -55,6 +55,17 @@ class MediaResolverTest {
     }
 
     @Test
+    fun resolverRejectsHttpUrlsWithoutAHost() = runBlocking {
+        val result = assertIs<EngineResult.Failure>(
+            LynoxEngine(mediaResolver = object : MediaResolver {
+                override suspend fun resolve(sourceUrl: String) =
+                    EngineResult.Failure(EngineError.Unknown)
+            }).resolveMedia("https://")
+        )
+        assertIs<EngineError.InvalidRequest>(result.error)
+    }
+
+    @Test
     fun resolverMustBeConfigured() = runBlocking {
         val result = assertIs<EngineResult.Failure>(
             LynoxEngine().resolveMedia("https://media.example.test/watch")
