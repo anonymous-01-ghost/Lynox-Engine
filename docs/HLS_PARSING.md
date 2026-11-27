@@ -5,10 +5,10 @@ Lynox Engine includes a platform-neutral `HlsMasterPlaylistParser` in `commonMai
 ## Contract
 
 ```kotlin
-val result = HlsMasterPlaylistParser().parse(manifestUrl, manifestText)
+val parsed = HlsMasterPlaylistParser().parse(manifestUrl, manifestText)\n\n// Or use an application-provided transport:\nval resolver = HlsManifestResolver(httpClient = platformHttpClient)\nval resolved = resolver.resolve(manifestUrl)
 ```
 
-The parser is deliberately transport-neutral: the application obtains the manifest using an access method permitted by its source and passes the URL and text to the parser. The parser makes no network requests and has no server dependency.
+The parser is deliberately transport-neutral: the application may obtain the manifest itself, or inject a platform-native `ManifestHttpClient` into `HlsManifestResolver`. The engine does not bundle a networking stack or require a server. The injected client must enforce the supplied response-size limit while reading, apply the timeout, follow only acceptable redirects, and propagate coroutine cancellation.
 
 ## Supported master-playlist fields
 
@@ -23,8 +23,8 @@ The result is a `ResolvedMedia` with HLS rendition URLs, MIME type `application/
 - This is a master-playlist parser, not a media-segment downloader or HLS playback engine.
 - It does not decrypt segments, interpret DRM, obtain credentials, bypass access restrictions, or refresh signed URLs.
 - It does not yet parse media-playlist segment timelines, encryption keys, subtitles, I-frame variants, or rendition selection rules such as language and DEFAULT/AUTOSELECT.
-- The caller must pass a valid, accessible manifest and handle network errors, redirects, expiry and refresh.
+- `HlsManifestResolver` validates HTTP status, optional playlist content type, final redirect URL and response character limit. It maps transport failures to typed engine errors and propagates coroutine cancellation.\n- The transport is injected: implementations are still required for Android, iOS and JVM. Timeout enforcement, redirect policy and byte-level streaming limits belong to that transport.
 
 ## Validation
 
-Common tests cover relative URL resolution, bitrate and resolution metadata, quoted codec attributes containing commas, separate audio renditions, invalid headers, manifests without variants and non-HTTP(S) manifest URLs.
+Common parser tests cover relative URL resolution, bitrate and resolution metadata, quoted codec attributes containing commas, separate audio renditions, invalid headers, manifests without variants and non-HTTP(S) manifest URLs. Resolver tests cover successful loading, HTTP authorization/server errors, oversized bodies, invalid content types and transport exceptions.
