@@ -13,7 +13,7 @@ import dev.lynox.engine.model.EngineResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 
 class MediaStreamSelectorTest {
     private val selector = MediaStreamSelector()
@@ -182,7 +182,7 @@ class MediaStreamSelectorTest {
 
 
     @Test
-    fun staticCapabilityProviderReturnsConfiguredProfile() = runBlocking {
+    fun staticCapabilityProviderReturnsConfiguredProfile() = runTest {
         val profile = MediaPlaybackCapabilities(
             supportedMimeTypes = setOf("audio/mp4"),
             supportedCodecs = setOf("mp4a.40.2"),
