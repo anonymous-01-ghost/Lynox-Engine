@@ -94,11 +94,13 @@ class YouTubeDataApiProvider(
         }
 
         return requestSafely {
-            val response = httpClient.get("$BASE_URL/videos") {
-                parameter("key", apiKey)
-                parameter("part", "snippet,contentDetails")
-                parameter("id", mediaId)
-            } }
+            val response = executeWithRetry {
+                httpClient.get("$BASE_URL/videos") {
+                    parameter("key", apiKey)
+                    parameter("part", "snippet,contentDetails")
+                    parameter("id", mediaId)
+                }
+            }
             val body = response.bodyAsText()
             if (!response.status.isSuccess()) {
                 return@requestSafely EngineResult.Failure(
