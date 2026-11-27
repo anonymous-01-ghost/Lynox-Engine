@@ -1,28 +1,20 @@
-# Networking strategy
+# Networking and retry policy
 
-Lynox Engine uses Ktor Client in shared code and selects a platform engine per target:
+Lynox Engine uses the Ktor `HttpClient` supplied by the host application. The app chooses the platform engine (Android, Darwin/iOS or CIO/JVM), owns the client lifecycle, and should configure connection and request timeouts appropriate to its product.
 
-- Android: Ktor Android engine.
-- iOS: Ktor Darwin engine.
-- JVM desktop: Ktor CIO engine.
+## Transient HTTP retries
 
-The consuming application creates and owns the `HttpClient`, then injects it into provider adapters. The application is responsible for closing the client when its lifecycle ends. This avoids hidden global clients and lets applications configure timeouts, logging, TLS and proxies.
+Both official YouTube Data API adapters use the shared internal retry helper:
 
-## YouTube Data API v3 adapter
+- At most **3 total attempts** per request.
+- Retries only HTTP **429** and **5xx** responses.
+- Uses bounded exponential delays starting at 250 ms, capped at 2 seconds.
+- Honors a numeric `Retry-After` response header, also capped at 2 seconds.
+- Does not retry validation, authentication, permission, quota (YouTube commonly reports quota exhaustion as 403), or other non-transient client errors.
+- Does not catch or retry coroutine cancellation. Transport exceptions are returned through the provider's normal network-error result rather than being retried.
 
-`YouTubeDataApiProvider` uses the documented HTTPS endpoints:
+The retry helper is intentionally internal; applications do not need to configure it. A host app may additionally configure Ktor timeouts and logging. Avoid logging full request URLs because the API key is passed as a query parameter by the upstream API.
 
-- `search.list` for video search and pagination.
-- `videos.list` for public video metadata and duration.
+## Client lifecycle
 
-The adapter accepts an API key at construction. Never commit keys to the repository or embed an unrestricted key in a distributed app. Restrict the key in Google Cloud, monitor quota usage, and consider a trusted backend if the key cannot be protected in the client.
-
-## Reliability
-
-- Requests are cancellable.
-- Coroutine cancellation is propagated and is not converted into a network error.
-- HTTP errors are mapped to typed engine errors.
-- Authentication, invalid requests and quota errors must not be retried blindly.
-- Add bounded retries only for transient failures and honor provider retry guidance.
-
-This adapter provides metadata/search only. It does not return playable media streams or implement a player.
+Create one appropriately configured `HttpClient` for the application/platform and inject it into the provider adapters. Close it when the owning application component is finished with it. Do not create a new client for every search request.
