@@ -8,6 +8,7 @@ import dev.lynox.engine.catalog.PlaylistEntry
 import dev.lynox.engine.model.EngineError
 import dev.lynox.engine.model.EngineResult
 import dev.lynox.engine.model.SearchPage
+import dev.lynox.engine.network.executeWithRetry
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -207,9 +208,11 @@ class YouTubeDataApiCatalogProvider(
         resource: String,
         configure: io.ktor.client.request.HttpRequestBuilder.() -> Unit
     ): EngineResult<JsonObject> {
-        val response = httpClient.get("$BASE_URL/$resource") {
-            parameter("key", apiKey)
-            configure()
+        val response = executeWithRetry {
+            httpClient.get("$BASE_URL/$resource") {
+                parameter("key", apiKey)
+                configure()
+            }
         }
         val body = response.bodyAsText()
         if (!response.status.isSuccess()) {
