@@ -1,24 +1,27 @@
-# YouTube API compliance boundary
+# Source access and compliance boundary
 
-The initial YouTube adapter is limited to documented YouTube Data API v3 operations for search and public metadata.
+Lynox Engine is designed as a client-side library, not a hosted API. The core must not require Google Cloud, YouTube Data API credentials, a Lynox backend, or AI tokens.
 
-## Allowed scope in this repository
+## Source adapters
 
-- Search public videos through `search.list`.
-- Retrieve public video metadata through `videos.list`.
-- Normalize returned metadata into Lynox models.
-- Link users to YouTube video pages or supported YouTube player experiences.
+Each source adapter must document:
+- the source and supported URL types;
+- the access method and its applicable terms;
+- authentication and permission requirements;
+- whether direct media resolution is permitted;
+- stream URL expiration and refresh behavior;
+- supported platforms and playback constraints.
 
-## Out of scope
+Use only media that the application is authorized to access and resolve. Do not bypass DRM, authentication, paywalls, private access controls, or service restrictions. Do not misrepresent an official metadata API as a media extractor.
 
-- Scraping YouTube pages or undocumented/private endpoints.
-- Extracting direct audio/video stream URLs.
-- Circumventing advertisements, DRM, access controls, quotas or other platform restrictions.
-- Downloading or caching media in ways not permitted by applicable terms.
-- Claiming that Data API search results provide playable media streams.
+## YouTube-specific boundary
 
-## API key handling
+The official YouTube Data API supports search and public metadata; it does not provide raw audio/video streams. Its adapter remains optional legacy functionality and is not the Lynox extraction engine.
 
-Do not commit keys. Restrict keys to the required APIs and appropriate application restrictions, monitor quota, and rotate exposed keys. A client-side key may be recoverable from a distributed application; use a trusted backend when stronger key protection is required.
+For YouTube playback, use supported YouTube playback integrations and current developer policies. This repository does not claim that its generic resolver contract authorizes direct extraction of YouTube media streams.
 
-Review the current YouTube API Services Terms and Developer Policies before publishing or distributing an application. This document is an engineering boundary, not legal advice.
+## Credential handling
+
+Never commit credentials. The core extraction contract does not require a Google API key. If an optional provider uses credentials, document their scope and the risk of embedding client-side keys.
+
+This document is an engineering boundary, not legal advice. Review the source's current terms and applicable law before shipping an adapter.
