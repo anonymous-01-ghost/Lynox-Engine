@@ -86,6 +86,39 @@ class YouTubeDataApiProviderTest {
         client.close()
     }
 
+
+    @Test
+    fun quotaErrorsAreMappedToTypedFailure() = runBlocking {
+        val client = HttpClient(MockEngine {
+            respond(
+                content = """{"error":{"message":"Quota exceeded"}}""",
+                status = HttpStatusCode.Forbidden,
+                headers = jsonHeaders()
+            )
+        })
+        val provider = YouTubeDataApiProvider(client, "test-key")
+
+        val result = provider.search(SearchRequest("example"))
+
+        val failure = assertIs<EngineResult.Failure>(result)
+        assertIs<dev.lynox.engine.model.EngineError.QuotaExceeded>(failure.error)
+        client.close()
+    }
+
+    @Test
+    fun blankSearchQueryReturnsInvalidRequestWithoutNetworkCall() = runBlocking {
+        val client = HttpClient(MockEngine {
+            error("A blank query must not trigger a network request")
+        })
+        val provider = YouTubeDataApiProvider(client, "test-key")
+
+        val result = provider.search(SearchRequest("   "))
+
+        val failure = assertIs<EngineResult.Failure>(result)
+        assertIs<dev.lynox.engine.model.EngineError.InvalidRequest>(failure.error)
+        client.close()
+    }
+
     private fun jsonHeaders(): Headers =
         headersOf(HttpHeaders.ContentType, "application/json")
 }
