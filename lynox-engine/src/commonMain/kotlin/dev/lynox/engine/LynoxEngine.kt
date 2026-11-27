@@ -1,6 +1,11 @@
 package dev.lynox.engine
 
 import dev.lynox.engine.cache.LruTtlCache
+import dev.lynox.engine.catalog.CatalogProvider
+import dev.lynox.engine.catalog.CatalogRequest
+import dev.lynox.engine.catalog.Channel
+import dev.lynox.engine.catalog.Playlist
+import dev.lynox.engine.catalog.PlaylistEntry
 import dev.lynox.engine.config.LynoxConfig
 import dev.lynox.engine.model.EngineError
 import dev.lynox.engine.model.EngineResult
@@ -17,7 +22,8 @@ import dev.lynox.engine.model.SearchRequest
 class LynoxEngine(
     private val searchProvider: SearchProvider? = null,
     private val metadataProvider: MetadataProvider? = null,
-    config: LynoxConfig = LynoxConfig()
+    config: LynoxConfig = LynoxConfig(),
+    private val catalogProvider: CatalogProvider? = null
 ) {
     private val searchCache = LruTtlCache<String, SearchPage<MediaItem>>(
         maxEntries = config.maxCacheEntries,
@@ -64,6 +70,45 @@ class LynoxEngine(
             }
             is EngineResult.Failure -> result
         }
+    }
+
+    /** Searches public channels using the configured catalog provider. */
+    suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
+        val query = request.query?.trim().orEmpty()
+        if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Channel search query cannot be blank"))
+        val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
+        return provider.searchChannels(request.copy(query = query))
+    }
+
+    suspend fun getChannel(channelId: String): EngineResult<Channel> {
+        val id = channelId.trim()
+        if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Channel ID cannot be blank"))
+        val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
+        return provider.getChannel(id)
+    }
+
+    suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> {
+        val query = request.query?.trim().orEmpty()
+        if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist search query cannot be blank"))
+        val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
+        return provider.searchPlaylists(request.copy(query = query))
+    }
+
+    suspend fun getPlaylist(playlistId: String): EngineResult<Playlist> {
+        val id = playlistId.trim()
+        if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
+        val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
+        return provider.getPlaylist(id)
+    }
+
+    suspend fun getPlaylistEntries(
+        playlistId: String,
+        request: CatalogRequest = CatalogRequest()
+    ): EngineResult<SearchPage<PlaylistEntry>> {
+        val id = playlistId.trim()
+        if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
+        val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
+        return provider.getPlaylistEntries(id, request.copy(query = null))
     }
 
     /** Removes all in-memory cached search and metadata responses. */
