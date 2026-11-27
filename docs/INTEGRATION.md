@@ -62,10 +62,9 @@ The factory selects:
 
 The resolver fetches and parses an HLS master playlist. It does not implement
 service-specific search, metadata extraction, protected-stream access, DRM
-handling, or media-segment downloading. The iOS URLSession completion-handler
-transport currently buffers the response before checking its configured byte
-limit; strict pre-buffer memory limiting still requires a delegate-based
-streaming implementation. The consuming app remains responsible for its
+handling, or media-segment downloading. The iOS URLSession delegate transport accumulates incoming chunks only up to
+the configured byte limit; URLSession may allocate an individual chunk before
+delivering it to the delegate. The consuming app remains responsible for its
 platform network policy (Android cleartext configuration and iOS App Transport
 Security).
 
