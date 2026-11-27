@@ -57,6 +57,26 @@ class YouTubeDataApiProviderTest {
     }
 
     @Test
+    fun directProviderSearchTrimsQueryBeforeSendingRequest() = runBlocking {
+        var sentQuery: String? = null
+        val client = HttpClient(MockEngine { request ->
+            sentQuery = request.url.parameters["q"]
+            respond(
+                content = """{"items": []}""",
+                status = HttpStatusCode.OK,
+                headers = jsonHeaders()
+            )
+        })
+        val provider = YouTubeDataApiProvider(client, "test-key")
+
+        val result = provider.search(SearchRequest("  ambient  "))
+
+        assertIs<EngineResult.Success<*>>(result)
+        assertEquals("ambient", sentQuery)
+        client.close()
+    }
+
+    @Test
     fun metadataMapsIsoDurationToSeconds() = runBlocking {
         val client = HttpClient(MockEngine {
             respond(
