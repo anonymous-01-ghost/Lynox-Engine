@@ -49,3 +49,10 @@ Operations use EngineResult.Success or EngineResult.Failure. Expected operationa
 ## Stability
 
 Names and signatures may change before version 1.0. Every new source adapter must include parser fixtures, failure cases, and platform integration tests before being called production-ready.
+
+
+### Playback-client capabilities
+
+`MediaPlaybackCapabilities` lets an application describe the formats and limits accepted by its actual playback client. It can declare supported MIME types (including major-type wildcards such as `video/*`), codec identifiers, audio/video support, bitrate ceilings and maximum dimensions. Pass it through `MediaSelectionRequest.capabilities`; the selector removes renditions that cannot be verified as compatible before ranking them.
+
+An empty MIME or codec set means that capability is unrestricted by the declaration. If a non-empty codec set is supplied, a rendition with missing codec metadata is excluded. Platform-specific modules should populate this model from the real player/device capability APIs. The common module does not claim that Android, iOS or JVM supports any particular codec by default, and it does not itself decode or play media.
