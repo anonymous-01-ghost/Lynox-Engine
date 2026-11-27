@@ -220,7 +220,7 @@ class YouTubeDataApiCatalogProvider(
         }
         val body = response.bodyAsText()
         if (!response.status.isSuccess()) {
-            return EngineResult.Failure(mapHttpError(response.status.value, body))
+            return EngineResult.Failure(mapYouTubeHttpError(response.status.value, body, json))
         }
         return EngineResult.Success(json.parseToJsonElement(body).jsonObject)
     }
@@ -243,19 +243,6 @@ class YouTubeDataApiCatalogProvider(
         EngineResult.Failure(EngineError.Network("YouTube Data API request failed"))
     }
 
-    private fun mapHttpError(status: Int, body: String): EngineError {
-        val isQuotaError = body.contains("quota", ignoreCase = true)
-        return when (status) {
-            400 -> EngineError.InvalidRequest("YouTube rejected the request (HTTP 400)")
-            401 -> EngineError.Unauthorized("YouTube API authentication failed")
-            403 -> if (isQuotaError) {
-                EngineError.QuotaExceeded()
-            } else {
-                EngineError.Unauthorized("YouTube API access was denied")
-            }
-            else -> EngineError.ProviderFailure("HTTP_$status", "YouTube request failed (HTTP $status)")
-        }
-    }
 
     private fun JsonObject.string(key: String): String? =
         this[key]?.jsonPrimitive?.content
