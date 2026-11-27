@@ -71,6 +71,29 @@ class LynoxEngineCacheTest {
     }
 
     @Test
+    fun searchCacheDoesNotCollideWhenQueryAndPageTokenContainSeparators() = runBlocking {
+        var calls = 0
+        val provider = object : SearchProvider {
+            override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
+                calls++
+                return EngineResult.Success(SearchPage(listOf(MediaItem("result-$calls", request.query))))
+            }
+        }
+        val engine = LynoxEngine(searchProvider = provider)
+
+        val first = assertIs<EngineResult.Success<*>>(
+            engine.search(SearchRequest(query = "a|b", pageToken = "c"))
+        )
+        val second = assertIs<EngineResult.Success<*>>(
+            engine.search(SearchRequest(query = "a", pageToken = "b|c"))
+        )
+
+        assertEquals("result-1", (first.value as SearchPage<*>).items.single().let { (it as MediaItem).id })
+        assertEquals("result-2", (second.value as SearchPage<*>).items.single().let { (it as MediaItem).id })
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun failedSearchIsNotCached() = runBlocking {
         var calls = 0
         val provider = object : SearchProvider {
