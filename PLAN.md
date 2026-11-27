@@ -55,13 +55,14 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 - Modelos de resultados y errores tipados.
 - Caché LRU con TTL para resultados de metadatos/catálogo.
 - Contrato MediaResolver, modelos ResolvedMedia/MediaStream y método resolveMedia().
-- Pruebas del contrato de resolución y validación básica de URL.
+- DirectUrlMediaResolver para URLs HTTP(S) de archivos multimedia directos con extensiones reconocidas; clasifica el archivo sin llamadas de red.
+- Pruebas comunes para resolver directo: audio, vídeo, query parameters, URLs no HTTP y páginas sin extensión de archivo multimedia.
 
 ### Código retirado
 - Los adaptadores YouTube Data API y sus pruebas fueron eliminados del repositorio: no eran extractores y no correspondían al objetivo del proyecto.
 
 ### Pendiente
-- Implementar un primer adaptador de fuente permitido y verificable.
+- Implementar un primer adaptador de fuente de servicio permitido y verificable (el resolver de archivos directos no cubre páginas de servicios).
 - Parser de manifiestos/formatos cuando corresponda a la fuente y sus permisos.
 - Modelo de expiración y renovación de URLs temporales.
 - Selección de formatos por capacidades del reproductor.
@@ -101,7 +102,7 @@ No se asumirá que una API de metadatos entrega streams. Para YouTube, la Data A
 - Contrato común de resolución integrado en LynoxEngine.
 - Pruebas unitarias del contrato y validación de URL.
 
-**Estado:** base iniciada; build CI pendiente.
+**Estado:** completada en código; build CI pendiente de confirmación.
 
 ### Fase B — Primer adaptador de fuente
 - Seleccionar una fuente cuyo acceso y resolución estén permitidos.
@@ -109,7 +110,7 @@ No se asumirá que una API de metadatos entrega streams. Para YouTube, la Data A
 - Añadir fixtures, tests positivos/negativos y errores de red.
 - Definir expiración/renovación y compatibilidad de formatos.
 
-**Estado:** pendiente.
+**Estado:** iniciada parcialmente: resolver de archivos directos incorporado; adaptador de servicio y parser pendientes.
 
 ### Fase C — Integración real en plataformas
 - Consumidor Android que incorpora el AAR.
