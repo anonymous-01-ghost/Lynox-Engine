@@ -20,14 +20,15 @@ Targets:
 - **Source adapters:** separate implementations per source, isolated from the core.
 - **Platform integration:** platform HTTP clients and playback hand-off; no mandatory hosted backend.
 
-The core now exposes MediaResolver through LynoxEngine.resolveMedia(). It defines the integration contract, but does not itself implement source-specific extraction. A real source adapter is still required.
+The core exposes MediaResolver through LynoxEngine.resolveMedia(). DirectUrlMediaResolver handles direct media-file URLs only; it does not parse service pages or discover streams. A source-specific adapter is still required for each service.
 
 ## Current repository contents
 
 - Kotlin Multiplatform targets for Android, iOS and JVM.
 - Provider-neutral search, metadata and catalog contracts.
 - MediaResolver, ResolvedMedia, MediaStream and MediaStreamKind.
-- URL validation and tests for the resolver entry point.
+- DirectUrlMediaResolver for publicly accessible direct media-file URLs with recognized extensions; it classifies URLs without making network requests.
+- URL validation and common tests for the resolver entry points.
 - In-memory cache for metadata/catalog responses.
 - Typed engine results and errors with a transport-neutral core.
 
