@@ -1,20 +1,20 @@
 # Networking and retry policy
 
-Lynox Engine uses the Ktor `HttpClient` supplied by the host application. The app chooses the platform engine (Android, Darwin/iOS or CIO/JVM), owns the client lifecycle, and should configure connection and request timeouts appropriate to its product.
+Lynox Engine is an in-process library. The core does not require a hosted backend or a Google Cloud API. Source adapters may use an application-owned Ktor HttpClient when needed; the adapter must document its network requirements and source-specific behavior.
 
-## Transient HTTP retries
+## Legacy YouTube metadata adapters
 
-Both official YouTube Data API adapters use the shared internal retry helper:
+The existing optional YouTube Data API adapters use the shared retry helper:
+- At most 3 total attempts per request.
+- Retries only HTTP 429 and 5xx responses.
+- Bounded exponential delay starting at 250 ms and capped at 2 seconds.
+- Honors numeric Retry-After values, also capped at 2 seconds.
+- Does not retry validation, authentication, permission, quota, or other non-transient client errors.
+- Does not catch or retry coroutine cancellation.
+- Transport exceptions are returned through the provider's normal network-error result rather than retried.
 
-- At most **3 total attempts** per request.
-- Retries only HTTP **429** and **5xx** responses.
-- Uses bounded exponential delays starting at 250 ms, capped at 2 seconds.
-- Honors a numeric `Retry-After` response header, also capped at 2 seconds.
-- Does not retry validation, authentication, permission, quota (YouTube commonly reports quota exhaustion as 403), or other non-transient client errors.
-- Does not catch or retry coroutine cancellation. Transport exceptions are returned through the provider's normal network-error result rather than being retried. The retry helper does not classify or retry connection failures, because transport exceptions vary across the supported KMP targets.
+This policy belongs to the legacy metadata adapters. It must not be assumed to fit every source resolver.
 
-The retry helper is intentionally internal; applications do not need to configure it. A host app may additionally configure Ktor timeouts and logging. Avoid logging full request URLs because the API key is passed as a query parameter by the upstream API.
+## Resolver networking
 
-## Client lifecycle
-
-Create one appropriately configured `HttpClient` for the application/platform and inject it into the provider adapters. Close it when the owning application component is finished with it. Do not create a new client for every search request.
+Each MediaResolver implementation owns source-specific redirect handling, request headers, parser behavior, retry policy, stream URL expiration and refresh. Use bounded timeouts, avoid logging credentials/cookies/signed URLs, and do not cache temporary stream URLs as ordinary metadata.
