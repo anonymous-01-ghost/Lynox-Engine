@@ -45,15 +45,17 @@ class YouTubeDataApiProvider(
         }
 
         return requestSafely {
-            val response = executeWithRetry { httpClient.get("$BASE_URL/search") {
-                parameter("key", apiKey)
-                parameter("part", "snippet")
-                parameter("type", "video")
-                parameter("q", request.query)
-                parameter("maxResults", request.pageSize)
-                request.pageToken?.let { parameter("pageToken", it) }
-                regionCode?.let { parameter("regionCode", it) }
-            } }
+            val response = executeWithRetry {
+                httpClient.get("$BASE_URL/search") {
+                    parameter("key", apiKey)
+                    parameter("part", "snippet")
+                    parameter("type", "video")
+                    parameter("q", request.query)
+                    parameter("maxResults", request.pageSize)
+                    request.pageToken?.let { parameter("pageToken", it) }
+                    regionCode?.let { parameter("regionCode", it) }
+                }
+            }
 
             val responseBody = response.bodyAsText()
             val root = parseResponse(response.status.value, responseBody)
