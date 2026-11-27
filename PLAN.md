@@ -65,7 +65,7 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 - Implementar un primer adaptador de fuente de servicio permitido y verificable (el resolver de archivos directos no cubre páginas de servicios).
 - Parser de manifiestos/formatos cuando corresponda a la fuente y sus permisos.
 - Modelo de expiración y renovación de URLs temporales.
-- Selección de formatos por capacidades del reproductor.
+- Integrar las capacidades reales de cada reproductor para construir MediaSelectionRequest automáticamente.
 - Pruebas con fixtures reales anonimizados y respuestas cambiantes.
 - Muestras consumidoras Android, iOS y JVM.
 - Validar build y XCFramework en CI; estado actual pendiente hasta que Actions finalice.
