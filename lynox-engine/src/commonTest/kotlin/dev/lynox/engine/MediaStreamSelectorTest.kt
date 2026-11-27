@@ -1,6 +1,7 @@
 package dev.lynox.engine
 
 import dev.lynox.engine.extractor.MediaPlaybackCapabilities
+import dev.lynox.engine.extractor.StaticMediaPlaybackCapabilityProvider
 import dev.lynox.engine.extractor.MediaSelectionKind
 import dev.lynox.engine.extractor.MediaSelectionRequest
 import dev.lynox.engine.extractor.MediaSelectionStrategy
@@ -12,6 +13,7 @@ import dev.lynox.engine.model.EngineResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlinx.coroutines.runBlocking
 
 class MediaStreamSelectorTest {
     private val selector = MediaStreamSelector()
@@ -160,6 +162,19 @@ class MediaStreamSelectorTest {
             )
         )
         assertIs<EngineError.InvalidRequest>(result.error)
+    }
+
+
+    @Test
+    fun staticCapabilityProviderReturnsConfiguredProfile() = runBlocking {
+        val profile = MediaPlaybackCapabilities(
+            supportedMimeTypes = setOf("audio/mp4"),
+            supportedCodecs = setOf("mp4a.40.2"),
+            maxAudioBitrate = 256_000
+        )
+        val provider = StaticMediaPlaybackCapabilityProvider(profile)
+
+        assertEquals(profile, provider.getCapabilities())
     }
 
     private fun audio(url: String, bitrate: Long, isDefault: Boolean = false) =
