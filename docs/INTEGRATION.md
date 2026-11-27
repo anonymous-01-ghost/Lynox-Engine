@@ -1,171 +1,54 @@
 # Consuming Lynox Engine
 
-Lynox Engine is an in-process Kotlin Multiplatform library. A consuming application supplies its own Ktor `HttpClient` and YouTube Data API key. No Lynox-hosted API or server is required.
+Lynox Engine is intended to be consumed as an in-process Kotlin Multiplatform library. The consuming application calls the library directly; no Lynox-hosted server, Google Cloud project, YouTube Data API key, or AI token is required by the core.
 
-The project is currently pre-1.0. Treat the API and coordinates as subject to change.
+> **Important status:** the repository is currently an extraction foundation, not a finished replacement for NewPipe Extractor. The source-neutral resolver contract exists, but a production source adapter must still be implemented and validated.
 
-## 1. Build and publish to a local Maven repository
+## 1. Publish to a local Maven repository
 
-From the Lynox Engine checkout, with JDK 17, Gradle 8.14.3 and the Android SDK installed:
+From the Lynox Engine checkout, with JDK 17, Gradle 8.14.3 and Android SDK installed:
 
-```bash
-gradle :lynox-engine:publishAllPublicationsToBuildDirectoryRepository -PVERSION_NAME=0.1.0-SNAPSHOT
-```
+    gradle :lynox-engine:publishAllPublicationsToBuildDirectoryRepository -PVERSION_NAME=0.1.0-SNAPSHOT
 
-The repository is generated at:
+Generated repository: lynox-engine/build/repository/.
 
-```text
-lynox-engine/build/repository/
-```
+Coordinates:
+- Group: dev.lynox
+- Module: lynox-engine
+- Version: 0.1.0-SNAPSHOT unless overridden.
 
-The configured Maven coordinates are:
+## 2. Add the dependency
 
-- Group: `dev.lynox`
-- Module: `lynox-engine`
-- Version: `0.1.0-SNAPSHOT` (unless overridden)
+Add the generated Maven repository to the consuming project's dependency repositories, then:
 
-The generated repository and its Gradle module metadata are authoritative for the exact target variants and artifact files. Inspect them before distributing or integrating a release. Do not infer target-specific artifact names from the project directory name.
-
-## 2. Add the local repository to a Kotlin Gradle consumer
-
-In the consuming project's `settings.gradle.kts`, add the generated repository to dependency resolution. Adjust the relative path to the actual Lynox Engine checkout:
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url = uri("../Lynox-Engine/lynox-engine/build/repository")
-        }
+    dependencies {
+        implementation("dev.lynox:lynox-engine:0.1.0-SNAPSHOT")
     }
-}
-```
 
-Then add the library dependency to the module that needs it:
+Gradle Module Metadata selects the Android or JVM variant. iOS consumes the generated XCFramework.
 
-```kotlin
-dependencies {
-    implementation("dev.lynox:lynox-engine:0.1.0-SNAPSHOT")
-}
-```
+## 3. Resolver integration boundary
 
-Gradle Module Metadata is used for Kotlin Multiplatform variant selection. If Gradle cannot resolve the requested target, inspect the generated `.module` file and the publications in the local repository before changing coordinates.
+A source adapter implements MediaResolver and returns ResolvedMedia containing available MediaStream renditions. The application injects the adapter into the engine integration layer and hands a selected, authorized rendition to its platform playback component.
 
-## 3. Add the platform Ktor engine
+The contract is not a working source adapter. Do not use a fake or placeholder resolver in production.
 
-The application creates and owns the HTTP client. Add the matching Ktor engine dependency to the application module, keeping its version aligned with Lynox Engine's Ktor version (`3.2.3` in this source revision):
+## 4. Platform artifacts
 
-Android:
+- Android: AAR.
+- JVM desktop: JAR.
+- iOS: static LynoxEngine.xcframework with device and simulator slices.
 
-```kotlin
-dependencies {
-    implementation("io.ktor:ktor-client-android:3.2.3")
-}
-```
+Build the iOS bundle on macOS with Xcode:
 
-JVM desktop:
+    gradle :lynox-engine:assembleLynoxEngineReleaseXCFramework
 
-```kotlin
-dependencies {
-    implementation("io.ktor:ktor-client-cio:3.2.3")
-}
-```
+Expected output: lynox-engine/build/XCFrameworks/release/LynoxEngine.xcframework.
 
-Kotlin Multiplatform iOS source set:
+## 5. Optional legacy YouTube metadata adapter
 
-```kotlin
-sourceSets {
-    val iosMain by getting {
-        dependencies {
-            implementation("io.ktor:ktor-client-darwin:3.2.3")
-        }
-    }
-}
-```
+The repository still contains optional YouTube Data API adapters for search and public metadata. They are unrelated to media extraction and require a restricted API key only if explicitly configured. Do not add them when the application needs only the source-neutral extraction core.
 
-For client construction, timeout configuration, lifecycle and API-key handling, follow [PLATFORM_CLIENTS.md](PLATFORM_CLIENTS.md).
+## 6. Verification
 
-## 4. Create the engine and perform a search
-
-This Kotlin code is shared across Android and JVM, and can be called from Kotlin code in an iOS target:
-
-```kotlin
-import dev.lynox.engine.LynoxEngine
-import dev.lynox.engine.model.EngineResult
-import dev.lynox.engine.model.SearchRequest
-import dev.lynox.engine.provider.YouTubeDataApiCatalogProvider
-import dev.lynox.engine.provider.YouTubeDataApiProvider
-import io.ktor.client.HttpClient
-
-fun createLynoxEngine(
-    httpClient: HttpClient,
-    restrictedYouTubeApiKey: String
-): LynoxEngine {
-    val videos = YouTubeDataApiProvider(
-        httpClient = httpClient,
-        apiKey = restrictedYouTubeApiKey
-    )
-    val catalog = YouTubeDataApiCatalogProvider(
-        httpClient = httpClient,
-        apiKey = restrictedYouTubeApiKey
-    )
-
-    return LynoxEngine(
-        searchProvider = videos,
-        metadataProvider = videos,
-        catalogProvider = catalog
-    )
-}
-
-suspend fun searchVideos(engine: LynoxEngine, query: String) {
-    when (val result = engine.search(SearchRequest(query = query))) {
-        is EngineResult.Success -> {
-            result.value.items.forEach { video ->
-                println("${video.title}: ${video.webUrl}")
-            }
-        }
-        is EngineResult.Failure -> {
-            // Handle the typed EngineError; do not parse provider message text.
-            println(result.error)
-        }
-    }
-}
-```
-
-The same `HttpClient` can be shared by the video and catalog providers. Close it once when its application-scoped owner is disposed.
-
-## 5. iOS XCFramework
-
-The Gradle build configures a static `LynoxEngine.xcframework` containing these slices:
-
-- `iosArm64` — physical iOS devices.
-- `iosSimulatorArm64` — Apple Silicon simulators.
-- `iosX64` — Intel simulators.
-
-On macOS with Xcode installed, build it with:
-
-```bash
-gradle :lynox-engine:assembleLynoxEngineReleaseXCFramework
-```
-
-The expected output is:
-
-```text
-lynox-engine/build/XCFrameworks/release/LynoxEngine.xcframework
-```
-
-GitHub Actions runs this task on macOS and uploads the resulting bundle as the `LynoxEngine-iOS-Release-XCFramework` workflow artifact when the build succeeds. The artifact is a CI output, not yet a versioned public release.
-
-To use it from a Swift/Xcode application, add the generated XCFramework to the Xcode project and link/embed it according to the application's framework settings. The current library API is Kotlin-first; a polished Swift sample and Swift-friendly wrapper are still future work.
-
-## 6. Credentials, API limits and playback
-
-- Never commit API keys or place them in source control.
-- A key embedded in a distributed client can be extracted. Restrict it in Google Cloud to the intended API and application where supported, monitor quota, and do not treat it as a secret.
-- The official YouTube Data API provides search and public metadata; it does not provide raw media streams.
-- Lynox Engine does not scrape private endpoints, bypass ads/DRM, or implement unauthorized playback.
-
-## 7. Verification status
-
-A successful local publication task and platform CI jobs are required before calling a release verified. Check [GitHub Actions](https://github.com/anonymous-01-ghost/Lynox-Engine/actions) for the status of the current revision. A queued workflow is not a passing build.
+A successful local publication task and platform CI jobs are required before calling a release verified. A queued workflow is not a passing build. Check GitHub Actions.
