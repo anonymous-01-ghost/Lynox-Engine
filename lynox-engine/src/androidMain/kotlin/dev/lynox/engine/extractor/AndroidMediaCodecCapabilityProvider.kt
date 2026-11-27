@@ -23,11 +23,11 @@ class AndroidMediaCodecCapabilityProvider : MediaPlaybackCapabilityProvider {
         codecInfos.asSequence()
             .filterNot { it.isEncoder }
             .forEach { codecInfo ->
-                codecInfo.supportedTypes.forEach { rawMimeType ->
+                codecInfo.supportedTypes.forEach mimeTypeLoop@{ rawMimeType ->
                     val mimeType = rawMimeType.lowercase()
                     val codecCapabilities = runCatching {
                         codecInfo.getCapabilitiesForType(rawMimeType)
-                    }.getOrNull() ?: return@forEach
+                    }.getOrNull() ?: return@mimeTypeLoop
 
                     mimeTypes += mimeType
                     if (mimeType.startsWith("audio/")) {
