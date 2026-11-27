@@ -46,10 +46,11 @@ class LynoxEngine(
         val provider = searchProvider
             ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
 
-        val cacheKey = "${request.query.trim()}|${request.pageToken.orEmpty()}|${request.pageSize}"
+        val normalized = request.copy(query = request.query.trim())
+        val cacheKey = "${normalized.query}|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
         searchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
 
-        return when (val result = provider.search(request)) {
+        return when (val result = provider.search(normalized)) {
             is EngineResult.Success -> {
                 searchCache.put(cacheKey, result.value)
                 result
