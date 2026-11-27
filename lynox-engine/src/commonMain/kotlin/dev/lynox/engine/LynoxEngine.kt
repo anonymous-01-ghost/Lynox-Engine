@@ -25,7 +25,7 @@ class LynoxEngine(
     config: LynoxConfig = LynoxConfig(),
     private val catalogProvider: CatalogProvider? = null
 ) {
-    private val searchCache = LruTtlCache<String, SearchPage<MediaItem>>(
+    private val searchCache = LruTtlCache<PageCacheKey, SearchPage<MediaItem>>(
         maxEntries = config.maxCacheEntries,
         ttl = config.cacheTtl
     )
@@ -33,11 +33,11 @@ class LynoxEngine(
         maxEntries = config.maxCacheEntries,
         ttl = config.cacheTtl
     )
-    private val channelSearchCache = LruTtlCache<String, SearchPage<Channel>>(config.maxCacheEntries, config.cacheTtl)
+    private val channelSearchCache = LruTtlCache<PageCacheKey, SearchPage<Channel>>(config.maxCacheEntries, config.cacheTtl)
     private val channelCache = LruTtlCache<String, Channel>(config.maxCacheEntries, config.cacheTtl)
-    private val playlistSearchCache = LruTtlCache<String, SearchPage<Playlist>>(config.maxCacheEntries, config.cacheTtl)
+    private val playlistSearchCache = LruTtlCache<PageCacheKey, SearchPage<Playlist>>(config.maxCacheEntries, config.cacheTtl)
     private val playlistCache = LruTtlCache<String, Playlist>(config.maxCacheEntries, config.cacheTtl)
-    private val playlistEntriesCache = LruTtlCache<String, SearchPage<PlaylistEntry>>(config.maxCacheEntries, config.cacheTtl)
+    private val playlistEntriesCache = LruTtlCache<PageCacheKey, SearchPage<PlaylistEntry>>(config.maxCacheEntries, config.cacheTtl)
 
     suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
         if (request.pageSize !in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
@@ -50,7 +50,7 @@ class LynoxEngine(
             ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
 
         val normalized = request.copy(query = request.query.trim())
-        val cacheKey = "${normalized.query}|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        val cacheKey = PageCacheKey(normalized.query, normalized.pageToken, normalized.pageSize)
         searchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
 
         return when (val result = provider.search(normalized)) {
@@ -90,7 +90,7 @@ class LynoxEngine(
         if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Channel search query cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
         val normalized = request.copy(query = query)
-        val cacheKey = "$query|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        val cacheKey = PageCacheKey(query, normalized.pageToken, normalized.pageSize)
         channelSearchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
         return when (val result = provider.searchChannels(normalized)) {
             is EngineResult.Success -> {
@@ -123,7 +123,7 @@ class LynoxEngine(
         if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist search query cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
         val normalized = request.copy(query = query)
-        val cacheKey = "$query|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        val cacheKey = PageCacheKey(query, normalized.pageToken, normalized.pageSize)
         playlistSearchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
         return when (val result = provider.searchPlaylists(normalized)) {
             is EngineResult.Success -> {
@@ -159,7 +159,7 @@ class LynoxEngine(
         }
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
         val normalized = request.copy(query = null)
-        val cacheKey = "$id|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        val cacheKey = PageCacheKey(id, normalized.pageToken, normalized.pageSize)
         playlistEntriesCache.get(cacheKey)?.let { return EngineResult.Success(it) }
         return when (val result = provider.getPlaylistEntries(id, normalized)) {
             is EngineResult.Success -> {
@@ -169,6 +169,12 @@ class LynoxEngine(
             is EngineResult.Failure -> result
         }
     }
+
+    private data class PageCacheKey(
+        val resourceId: String,
+        val pageToken: String?,
+        val pageSize: Int
+    )
 
     private companion object {
         const val MIN_PAGE_SIZE = 1
