@@ -2,7 +2,7 @@
 
 Independent Kotlin Multiplatform library targeting **Android, iOS and JVM desktop**.
 
-> Current status: early development. Shared contracts and the first official YouTube Data API adapter are in place. Platform builds and integration tests still require CI verification.
+> Current status: early development. The shared engine, official YouTube Data API adapter, in-memory cache and multiplatform CI are implemented. A stable 1.0 release is not yet available.
 
 ## Modules and targets
 
@@ -19,7 +19,33 @@ Independent Kotlin Multiplatform library targeting **Android, iOS and JVM deskto
   - video search through `search.list`;
   - public metadata and duration through `videos.list`.
 - Ktor networking with Android, Darwin and CIO engines.
-- Shared model tests and GitHub Actions build workflow.
+- Configurable, bounded, in-memory LRU cache with TTL for successful search and metadata responses.
+- Cache invalidation through `engine.clearCache()`.
+- Shared unit tests and GitHub Actions builds for Android, iOS and JVM.
+
+## Basic integration
+
+Create a platform-specific Ktor client and inject the official provider:
+
+```kotlin
+val provider = YouTubeDataApiProvider(
+    httpClient = httpClient,
+    apiKey = restrictedYouTubeApiKey
+)
+
+val engine = LynoxEngine(
+    searchProvider = provider,
+    metadataProvider = provider,
+    config = LynoxConfig(
+        cacheTtl = 10.minutes,
+        maxCacheEntries = 100
+    )
+)
+
+val result = engine.search(SearchRequest(query = "ambient music"))
+```
+
+Import `kotlin.time.Duration.Companion.minutes` when using the example TTL.
 
 ## Build
 
@@ -39,7 +65,7 @@ iOS framework compilation requires macOS and Xcode.
 
 The consuming app creates the Ktor `HttpClient` using its platform engine and injects it into `YouTubeDataApiProvider`. The app owns the client lifecycle and supplies its YouTube Data API key.
 
-Do not commit API keys. Restrict keys in Google Cloud and monitor API quota. For distributed apps, evaluate key protection and whether a trusted backend is necessary.
+Do not commit API keys. Restrict keys in Google Cloud and monitor API quota. A key embedded in a distributed client cannot be treated as a secret; apply API restrictions and evaluate a trusted backend if stronger credential protection is required.
 
 ## Playback and compliance boundary
 
