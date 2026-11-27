@@ -139,8 +139,12 @@ Lynox Engine solo se considerará extractor funcional cuando al menos un adaptad
 
 ## Playback capability providers
 
+Android now has an `AndroidMediaCodecCapabilityProvider` backed by `MediaCodecList`. It reports decoder MIME types and aggregate codec limits; it does not inspect Media3 renderers, infer codec profile identifiers, or guarantee that all reported maxima apply to one decoder. Device-level validation and Media3 integration remain open.
+
+
 - [x] Add a platform-neutral capability model and selector filtering.
 - [x] Add a provider contract and static provider for fixed profiles/tests.
-- [ ] Implement and validate native Android/Media3 capability discovery.
+- [x] Add Android MediaCodec decoder MIME/capability discovery in androidMain (device validation still pending).
+- [ ] Integrate and validate Media3 renderer-specific capability discovery.
 - [ ] Implement and validate iOS/AVFoundation capability discovery.
 - [ ] Implement and validate desktop-player capability discovery.
