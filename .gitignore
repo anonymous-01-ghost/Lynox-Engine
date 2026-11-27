@@ -17,7 +17,7 @@ local.properties
 
 # Kotlin / Native
 .kotlin/
- konan/
+konan/
 *.hprof
 
 # macOS
