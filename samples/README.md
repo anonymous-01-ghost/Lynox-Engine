@@ -1,10 +1,10 @@
 # Samples
 
-Platform sample applications will be added after the SDK's initial API and provider integration are validated.
+Samples will demonstrate direct in-process dependency consumption on Android, iOS and JVM.
 
-Planned samples:
-- Android: Kotlin application consuming the AAR/project module.
-- iOS: Swift application importing the generated Kotlin framework.
-- Desktop: Kotlin/JVM application consuming the JAR.
+The sample apps must use a real, permitted source adapter once one is implemented. Until then, they may validate dependency resolution and the source-neutral API contract, but must not claim end-to-end media extraction or playback.
 
-Samples must demonstrate supported metadata and playback workflows only.
+Planned:
+- Android: Kotlin app consuming the AAR.
+- iOS: Swift app importing the XCFramework.
+- Desktop: Kotlin/JVM app consuming the JAR.
