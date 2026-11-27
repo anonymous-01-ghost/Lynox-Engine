@@ -56,3 +56,25 @@ Names and signatures may change before version 1.0. Every new source adapter mus
 `MediaPlaybackCapabilities` lets an application describe the formats and limits accepted by its actual playback client. It can declare supported MIME types (including major-type wildcards such as `video/*`), codec identifiers, audio/video support, bitrate ceilings and maximum dimensions. Pass it through `MediaSelectionRequest.capabilities`; the selector removes renditions that cannot be verified as compatible before ranking them.
 
 An empty MIME or codec set means that capability is unrestricted by the declaration. If a non-empty codec set is supplied, a rendition with missing codec metadata is excluded. Platform-specific modules should populate this model from the real player/device capability APIs. The common module does not claim that Android, iOS or JVM supports any particular codec by default, and it does not itself decode or play media.
+
+
+### Capability providers
+
+Applications can supply a `MediaPlaybackCapabilityProvider` that reports the active playback client's current capabilities. `StaticMediaPlaybackCapabilityProvider` is included for fixed profiles and tests. Platform-specific providers must query the actual playback stack and return a `MediaPlaybackCapabilities` value; the core intentionally does not guess codec support from the operating-system name.
+
+Example:
+
+    val provider = StaticMediaPlaybackCapabilityProvider(
+        MediaPlaybackCapabilities(
+            supportedMimeTypes = setOf("audio/mp4"),
+            supportedCodecs = setOf("mp4a.40.2"),
+            maxAudioBitrate = 256_000
+        )
+    )
+    val capabilities = provider.getCapabilities()
+    val selection = selector.select(
+        resolvedMedia.streams,
+        MediaSelectionRequest(capabilities = capabilities)
+    )
+
+The static provider is not a substitute for querying dynamic device/player capabilities.
