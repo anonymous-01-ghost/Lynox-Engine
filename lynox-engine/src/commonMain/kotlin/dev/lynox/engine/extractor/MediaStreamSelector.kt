@@ -27,7 +27,8 @@ data class MediaSelectionRequest(
     val strategy: MediaSelectionStrategy = MediaSelectionStrategy.BEST_QUALITY,
     val maxBitrate: Long? = null,
     val maxWidth: Int? = null,
-    val maxHeight: Int? = null
+    val maxHeight: Int? = null,
+    val capabilities: MediaPlaybackCapabilities? = null
 ) {
     init {
         require(maxBitrate == null || maxBitrate > 0) {
@@ -67,7 +68,8 @@ class MediaStreamSelector {
                 (request.maxWidth == null ||
                     (stream.width != null && stream.width <= request.maxWidth)) &&
                 (request.maxHeight == null ||
-                    (stream.height != null && stream.height <= request.maxHeight))
+                    (stream.height != null && stream.height <= request.maxHeight)) &&
+                matchesCapabilities(stream, request.capabilities)
         }
 
         if (compatible.isEmpty()) {
@@ -98,6 +100,59 @@ class MediaStreamSelector {
 
         return selected?.let { EngineResult.Success(it) }
             ?: EngineResult.Failure(EngineError.Unknown)
+    }
+
+    private fun matchesCapabilities(
+        stream: MediaStream,
+        capabilities: MediaPlaybackCapabilities?
+    ): Boolean {
+        if (capabilities == null) return true
+
+        val supportsKind = when (stream.kind) {
+            MediaStreamKind.AUDIO -> capabilities.supportsAudio
+            MediaStreamKind.VIDEO -> capabilities.supportsVideo
+            MediaStreamKind.AUDIO_VIDEO -> capabilities.supportsAudio && capabilities.supportsVideo
+        }
+        if (!supportsKind) return false
+
+        if (capabilities.supportedMimeTypes.isNotEmpty()) {
+            val mime = stream.mimeType.substringBefore(';').trim().lowercase()
+            val mimeMatches = capabilities.supportedMimeTypes.any { supported ->
+                val normalized = supported.substringBefore(';').trim().lowercase()
+                normalized == mime || (normalized.endsWith("/*") &&
+                    mime.startsWith(normalized.removeSuffix("*") ))
+            }
+            if (!mimeMatches) return false
+        }
+
+        if (capabilities.supportedCodecs.isNotEmpty()) {
+            val streamCodecs = stream.codecs
+                ?.split(',')
+                ?.map { it.trim().lowercase() }
+                ?.filter { it.isNotEmpty() }
+                .orEmpty()
+            if (streamCodecs.isEmpty() || streamCodecs.any { it !in capabilities.supportedCodecs.map(String::lowercase) }) {
+                return false
+            }
+        }
+
+        val bitrateLimits = when (stream.kind) {
+            MediaStreamKind.AUDIO -> listOfNotNull(capabilities.maxAudioBitrate)
+            MediaStreamKind.VIDEO -> listOfNotNull(capabilities.maxVideoBitrate)
+            MediaStreamKind.AUDIO_VIDEO -> listOfNotNull(
+                capabilities.maxAudioBitrate,
+                capabilities.maxVideoBitrate
+            )
+        }
+        val bitrateLimit = bitrateLimits.minOrNull()
+        if (bitrateLimit != null && (stream.bitrate == null || stream.bitrate > bitrateLimit)) {
+            return false
+        }
+        if (capabilities.maxWidth != null &&
+            (stream.width == null || stream.width > capabilities.maxWidth)) return false
+        if (capabilities.maxHeight != null &&
+            (stream.height == null || stream.height > capabilities.maxHeight)) return false
+        return true
     }
 
     private fun matchesKind(
