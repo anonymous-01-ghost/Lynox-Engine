@@ -43,6 +43,26 @@ class LynoxEngineCacheTest {
     }
 
     @Test
+    fun videoSearchNormalizesQueryBeforeProviderAndCacheLookup() = runBlocking {
+        var calls = 0
+        var receivedQuery: String? = null
+        val provider = object : SearchProvider {
+            override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
+                calls++
+                receivedQuery = request.query
+                return EngineResult.Success(SearchPage(listOf(MediaItem("id-1", "Title"))))
+            }
+        }
+        val engine = LynoxEngine(searchProvider = provider)
+
+        assertIs<EngineResult.Success<*>>(engine.search(SearchRequest("  ambient  ")))
+        assertIs<EngineResult.Success<*>>(engine.search(SearchRequest("ambient")))
+
+        assertEquals("ambient", receivedQuery)
+        assertEquals(1, calls)
+    }
+
+    @Test
     fun failedSearchIsNotCached() = runBlocking {
         var calls = 0
         val provider = object : SearchProvider {
