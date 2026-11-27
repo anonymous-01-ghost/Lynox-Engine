@@ -135,13 +135,29 @@ suspend fun searchVideos(engine: LynoxEngine, query: String) {
 
 The same `HttpClient` can be shared by the video and catalog providers. Close it once when its application-scoped owner is disposed.
 
-## 5. iOS integration boundary
+## 5. iOS XCFramework
 
-The Gradle module currently declares static Kotlin/Native frameworks for iOS device (`iosArm64`) and simulators (`iosSimulatorArm64`, `iosX64`). These are architecture-specific framework targets.
+The Gradle build configures a static `LynoxEngine.xcframework` containing these slices:
 
-A Swift/Xcode application needs a framework or XCFramework integrated into its Xcode project. Do not assume that the Maven dependency alone creates a ready-to-embed universal XCFramework. Build and package the required iOS framework for the intended architectures on macOS with Xcode, then integrate the resulting framework using the project's Xcode build workflow.
+- `iosArm64` — physical iOS devices.
+- `iosSimulatorArm64` — Apple Silicon simulators.
+- `iosX64` — Intel simulators.
 
-The current CI compiles each iOS framework target separately. A packaged XCFramework and a Swift-facing sample app are not yet declared as release deliverables.
+On macOS with Xcode installed, build it with:
+
+```bash
+gradle :lynox-engine:assembleLynoxEngineReleaseXCFramework
+```
+
+The expected output is:
+
+```text
+lynox-engine/build/XCFrameworks/release/LynoxEngine.xcframework
+```
+
+GitHub Actions runs this task on macOS and uploads the resulting bundle as the `LynoxEngine-iOS-Release-XCFramework` workflow artifact when the build succeeds. The artifact is a CI output, not yet a versioned public release.
+
+To use it from a Swift/Xcode application, add the generated XCFramework to the Xcode project and link/embed it according to the application's framework settings. The current library API is Kotlin-first; a polished Swift sample and Swift-friendly wrapper are still future work.
 
 ## 6. Credentials, API limits and playback
 
