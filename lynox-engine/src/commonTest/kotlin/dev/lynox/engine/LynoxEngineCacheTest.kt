@@ -19,6 +19,23 @@ import kotlin.time.Duration.Companion.minutes
 
 class LynoxEngineCacheTest {
     @Test
+    fun invalidVideoSearchPageSizeIsRejectedBeforeProviderCall() = runBlocking {
+        var calls = 0
+        val provider = object : SearchProvider {
+            override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
+                calls++
+                return EngineResult.Success(SearchPage(emptyList()))
+            }
+        }
+        val engine = LynoxEngine(searchProvider = provider)
+
+        val result = engine.search(SearchRequest(query = "ambient", pageSize = 0))
+
+        assertIs<EngineResult.Failure>(result)
+        assertEquals(0, calls)
+    }
+
+    @Test
     fun successfulSearchIsCachedUntilCacheIsCleared() = runBlocking {
         var calls = 0
         val provider = object : SearchProvider {
