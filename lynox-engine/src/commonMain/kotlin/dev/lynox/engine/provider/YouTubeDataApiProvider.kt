@@ -7,6 +7,7 @@ import dev.lynox.engine.model.EngineResult
 import dev.lynox.engine.model.MediaItem
 import dev.lynox.engine.model.SearchPage
 import dev.lynox.engine.model.SearchRequest
+import dev.lynox.engine.network.executeWithRetry
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -44,7 +45,7 @@ class YouTubeDataApiProvider(
         }
 
         return requestSafely {
-            val response = httpClient.get("$BASE_URL/search") {
+            val response = executeWithRetry { httpClient.get("$BASE_URL/search") {
                 parameter("key", apiKey)
                 parameter("part", "snippet")
                 parameter("type", "video")
@@ -52,7 +53,7 @@ class YouTubeDataApiProvider(
                 parameter("maxResults", request.pageSize)
                 request.pageToken?.let { parameter("pageToken", it) }
                 regionCode?.let { parameter("regionCode", it) }
-            }
+            } }
 
             val responseBody = response.bodyAsText()
             val root = parseResponse(response.status.value, responseBody)
@@ -97,7 +98,7 @@ class YouTubeDataApiProvider(
                 parameter("key", apiKey)
                 parameter("part", "snippet,contentDetails")
                 parameter("id", mediaId)
-            }
+            } }
             val body = response.bodyAsText()
             if (!response.status.isSuccess()) {
                 return@requestSafely EngineResult.Failure(
