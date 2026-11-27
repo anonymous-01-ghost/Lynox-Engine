@@ -1,51 +1,49 @@
-# Lynox YouTube Engine
+# Lynox Engine
 
-Independent Kotlin Multiplatform library project targeting **Android, iOS and JVM desktop**.
+Independent Kotlin Multiplatform library targeting **Android, iOS and JVM desktop**.
 
-> Current status: foundation / scaffold. The public contracts and initial models are in place. Provider integrations, platform validation and release artifacts are not yet complete.
+> Current status: early development. Shared contracts and the first official YouTube Data API adapter are in place. Platform builds and integration tests still require CI verification.
 
-## Repository layout
+## Modules and targets
 
 - `:lynox-engine` — shared SDK module.
-- `commonMain` — platform-neutral API and models.
-- `androidMain`, `iosMain`, `jvmMain` — platform-specific extension points.
-- `commonTest` — shared tests.
-- `PLAN.md` — master development plan.
-- `docs/` — architecture, API, platform and compliance documentation.
+- Android — Android library (AAR).
+- iOS — device and simulator frameworks (including Apple Silicon and Intel simulator targets).
+- Desktop — JVM library (JAR), usable on JVM-based desktop environments.
 
-## Targets
+## Features implemented
 
-- Android library (AAR)
-- iOS device and simulator frameworks
-- JVM desktop library (JAR)
+- Provider-neutral engine API and typed results.
+- Search pagination models.
+- Official YouTube Data API v3 adapter:
+  - video search through `search.list`;
+  - public metadata and duration through `videos.list`.
+- Ktor networking with Android, Darwin and CIO engines.
+- Shared model tests and GitHub Actions build workflow.
 
 ## Build
 
-Requirements: JDK 17 or the version required by the selected Android Gradle Plugin, Android SDK for Android tasks, and macOS with Xcode for iOS tasks.
+Requirements: JDK 17, Gradle 8.14.3, Android SDK for Android tasks, and macOS with Xcode for iOS tasks.
 
-The Gradle Wrapper should be generated and committed from a trusted local Gradle installation before the first reproducible release build.
-
-Typical tasks after wrapper setup:
+The Gradle Wrapper has not yet been committed. Until it is added, use a compatible local Gradle installation:
 
 ```bash
-./gradlew :lynox-engine:tasks
-./gradlew :lynox-engine:compileKotlinMetadata
-./gradlew :lynox-engine:compileKotlinJvm
-./gradlew :lynox-engine:compileDebugKotlinAndroid
+gradle :lynox-engine:jvmTest
+gradle :lynox-engine:compileKotlinJvm
+gradle :lynox-engine:compileDebugKotlinAndroid
 ```
 
 iOS framework compilation requires macOS and Xcode.
 
-## Current implementation
+## Integration notes
 
-- Public engine entry point
-- Search and metadata provider contracts
-- Provider-neutral media and pagination models
-- Typed result/error model
-- Basic configuration model
-- Initial common tests
+The consuming app creates the Ktor `HttpClient` using its platform engine and injects it into `YouTubeDataApiProvider`. The app owns the client lifecycle and supplies its YouTube Data API key.
 
-No YouTube provider is wired in yet. This is intentional: provider access must use documented and permitted interfaces, and must not rely on private endpoints or bypass mechanisms.
+Do not commit API keys. Restrict keys in Google Cloud and monitor API quota. For distributed apps, evaluate key protection and whether a trusted backend is necessary.
+
+## Playback and compliance boundary
+
+The YouTube Data API provides search and metadata; it does not provide raw media streams. This library does not scrape private endpoints, extract streams, bypass ads/DRM, or implement unauthorized playback. Use supported YouTube playback integrations and follow YouTube API Services terms and policies.
 
 ## License
 
