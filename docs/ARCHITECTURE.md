@@ -29,10 +29,6 @@ The core must not require a Lynox backend, Google Cloud project, YouTube Data AP
 
 The contract is not an extractor implementation. A source adapter is only complete after fixture-based parser tests, network/error tests, and playback validation on each claimed platform.
 
-## Legacy metadata adapters
-
-The repository currently contains optional YouTube Data API v3 adapters for search and public catalog metadata. They are separate from media extraction, do not resolve audio/video streams, and are not a required dependency of the core. They may be removed or moved to an optional module in a later breaking release.
-
 ## Source sets
 
 - commonMain: API contracts, models, validation and shared logic.
