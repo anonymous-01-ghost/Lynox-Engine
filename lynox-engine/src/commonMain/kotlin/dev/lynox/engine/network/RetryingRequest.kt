@@ -28,12 +28,18 @@ internal suspend fun executeWithRetry(
 
         // Consume the transient response before opening the next request.
         response.bodyAsText()
-        val exponentialDelay = (baseDelayMillis * (1L shl (attempt - 1).coerceAtMost(10)))
-            .coerceAtMost(maxDelayMillis)
+        var exponentialDelay = baseDelayMillis
+        repeat((attempt - 1).coerceAtMost(10)) {
+            exponentialDelay = if (exponentialDelay > maxDelayMillis / 2) {
+                maxDelayMillis
+            } else {
+                (exponentialDelay * 2).coerceAtMost(maxDelayMillis)
+            }
+        }
         val retryAfter = response.headers[HttpHeaders.RetryAfter]
             ?.toLongOrNull()
+            ?.coerceIn(0L, maxDelayMillis / 1_000L)
             ?.times(1_000L)
-            ?.coerceAtMost(maxDelayMillis)
         delay(retryAfter ?: exponentialDelay)
         attempt++
     }
