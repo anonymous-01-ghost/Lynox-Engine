@@ -1,55 +1,18 @@
-# Channel and playlist catalog
+# Catalog contracts
 
-Lynox Engine is an in-process Kotlin Multiplatform **library**. It does not require a Lynox-hosted API or server.
+Lynox Engine is an in-process Kotlin Multiplatform library. The catalog package defines provider-neutral models and an optional capability contract; it does not ship a source-specific catalog adapter.
 
 ## Public models and provider contract
 
-The `dev.lynox.engine.catalog` package defines:
+The dev.lynox.engine.catalog package defines:
+- Channel: normalized channel metadata.
+- Playlist: normalized playlist metadata.
+- PlaylistEntry: a media reference within a playlist.
+- CatalogRequest: page size, continuation token and optional search query.
+- CatalogProvider: optional capability contract for catalog operations.
 
-- `Channel`: normalized public channel metadata.
-- `Playlist`: normalized public playlist metadata.
-- `PlaylistEntry`: a video reference within a playlist.
-- `CatalogRequest`: page size, continuation token and optional search query.
-- `CatalogProvider`: optional capability contract for catalog operations.
+A source adapter may implement CatalogProvider only when the source exposes these capabilities through permitted access methods. Fields that are unavailable must remain null; the core must not invent metadata.
 
-## Included YouTube adapter
+## Boundary
 
-`YouTubeDataApiCatalogProvider` implements `CatalogProvider` using documented public YouTube Data API v3 resources:
-
-- `search.list` with `type=channel` or `type=playlist`;
-- `channels.list` for public channel metadata and available statistics;
-- `playlists.list` for playlist metadata;
-- `playlistItems.list` for paginated playlist entries.
-
-The adapter maps provider responses into Lynox's provider-neutral models. Hidden or unavailable statistics remain null. It does not extract media streams or implement playback.
-
-## Use through LynoxEngine
-
-Create one platform-specific Ktor client and inject the catalog adapter:
-
-```kotlin
-val catalog = YouTubeDataApiCatalogProvider(
-    httpClient = httpClient,
-    apiKey = restrictedYouTubeApiKey
-)
-
-val engine = LynoxEngine(
-    searchProvider = videoProvider,
-    metadataProvider = videoProvider,
-    catalogProvider = catalog
-)
-
-val channels = engine.searchChannels(CatalogRequest(query = "jazz"))
-val playlists = engine.searchPlaylists(CatalogRequest(query = "jazz"))
-val channel = engine.getChannel("CHANNEL_ID")
-val playlist = engine.getPlaylist("PLAYLIST_ID")
-val entries = engine.getPlaylistEntries("PLAYLIST_ID")
-```
-
-All operations are suspending functions and return `EngineResult`. Paginated responses expose `nextPageToken`; pass it as `CatalogRequest(pageToken = ...)` to request the next page.
-
-The catalog provider is optional. Existing applications that only configure video search and metadata remain source-compatible because the new constructor argument is optional and appended after the existing arguments.
-
-## Key handling and upstream policy
-
-Do not commit API keys. A key embedded in a distributed app cannot be treated as a secret; restrict it to the required APIs and app identities where supported, monitor quota, and rotate it if exposed. Provider implementations must use authorized interfaces and comply with the upstream service terms and policies.
+The catalog contract is independent of media extraction. Search and metadata do not automatically provide playable media streams. The core has no Google Cloud API-key or quota dependency.
