@@ -63,7 +63,7 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 
 ### Pendiente
 - Implementar un primer adaptador de fuente de servicio permitido y verificable (el resolver de archivos directos no cubre páginas de servicios).
-- Parser de manifiestos/formatos cuando corresponda a la fuente y sus permisos.
+- Parser HLS master en commonMain y resolver sobre transporte inyectable; faltan transportes nativos por plataforma y selección completa de rendiciones.
 - Modelo de expiración y renovación de URLs temporales.
 - Integrar las capacidades reales de cada reproductor para construir MediaSelectionRequest automáticamente.
 - Pruebas con fixtures reales anonimizados y respuestas cambiantes.
