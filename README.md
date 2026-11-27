@@ -28,7 +28,8 @@ The core exposes MediaResolver through LynoxEngine.resolveMedia(). DirectUrlMedi
 - Provider-neutral search, metadata and catalog contracts.
 - MediaResolver, ResolvedMedia, MediaStream and MediaStreamKind.
 - DirectUrlMediaResolver for publicly accessible direct media-file URLs with recognized extensions; it classifies URLs without making network requests.
-- URL validation and common tests for the resolver entry points.
+- MediaStreamSelector for choosing audio/video renditions by quality, bandwidth, default preference and optional limits.
+- Common tests for direct URL resolution and rendition selection.
 - In-memory cache for metadata/catalog responses.
 - Typed engine results and errors with a transport-neutral core.
 
