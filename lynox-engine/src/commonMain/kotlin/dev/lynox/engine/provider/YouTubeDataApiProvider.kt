@@ -41,6 +41,9 @@ class YouTubeDataApiProvider(
     override suspend fun search(
         request: SearchRequest
     ): EngineResult<SearchPage<MediaItem>> {
+        if (request.pageSize !in 1..50) {
+            return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
+        }
         if (request.query.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Search query cannot be blank"))
         }
@@ -92,7 +95,8 @@ class YouTubeDataApiProvider(
     }
 
     override suspend fun getMediaInfo(mediaId: String): EngineResult<MediaItem> {
-        if (mediaId.isBlank()) {
+        val normalizedId = mediaId.trim()
+        if (normalizedId.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Media ID cannot be blank"))
         }
 
@@ -101,7 +105,7 @@ class YouTubeDataApiProvider(
                 httpClient.get("$BASE_URL/videos") {
                     parameter("key", apiKey)
                     parameter("part", "snippet,contentDetails")
-                    parameter("id", mediaId)
+                    parameter("id", normalizedId)
                 }
             }
             val body = response.bodyAsText()
@@ -123,7 +127,7 @@ class YouTubeDataApiProvider(
 
             EngineResult.Success(
                 MediaItem(
-                    id = mediaId,
+                    id = normalizedId,
                     title = snippet.string("title") ?: "Untitled",
                     description = snippet.string("description"),
                     channelId = snippet.string("channelId"),
@@ -131,7 +135,7 @@ class YouTubeDataApiProvider(
                     durationSeconds = contentDetails?.string("duration")?.toDurationSeconds(),
                     thumbnailUrl = thumbnails?.get("high")?.jsonObject?.string("url")
                         ?: thumbnails?.get("default")?.jsonObject?.string("url"),
-                    webUrl = "https://www.youtube.com/watch?v=$mediaId"
+                    webUrl = "https://www.youtube.com/watch?v=$normalizedId"
                 )
             )
         }
