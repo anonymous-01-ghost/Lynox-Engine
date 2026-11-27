@@ -5,6 +5,8 @@ All notable changes to Lynox Engine will be documented here.
 ## Unreleased
 
 - Corrected the product direction: Lynox Engine is an independent, in-process media extraction library, not a Google Cloud or YouTube Data API wrapper.
-- Added source-neutral MediaResolver, ResolvedMedia, MediaStream and MediaStreamKind contracts as the extraction foundation.
-- Retained the existing YouTube Data API adapters as optional legacy search/metadata functionality; they are not an extractor.
-- Updated architecture, API, integration and compliance documentation to distinguish implemented contracts from unfinished source adapters.
+- Removed the YouTube Data API provider implementations and their tests from the core project.
+- Added source-neutral MediaResolver, ResolvedMedia, MediaStream and MediaStreamKind contracts, exposed through LynoxEngine.resolveMedia().
+- Added URL validation and tests for resolver injection, normalized URLs and unconfigured providers.
+- Documented the exact LynoxMusic migration target and retained NewPipe in the app until a real replacement passes parity tests.
+- Updated architecture, build dependencies, integration and compliance documentation.
