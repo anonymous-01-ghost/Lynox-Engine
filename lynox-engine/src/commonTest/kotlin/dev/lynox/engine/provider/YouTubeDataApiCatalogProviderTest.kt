@@ -8,11 +8,13 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertFailsWith
 
 class YouTubeDataApiCatalogProviderTest {
 
@@ -142,6 +144,26 @@ class YouTubeDataApiCatalogProviderTest {
         val failure = assertIs<EngineResult.Failure>(result)
         assertFalse(failure.error.toString().contains("private-sensitive-detail"))
         client.close()
+    }
+
+
+    @Test
+    fun channelSearchPropagatesCoroutineCancellation() = runBlocking {
+        var calls = 0
+        val client = HttpClient(MockEngine {
+            calls++
+            throw CancellationException("cancel channel search")
+        })
+        val provider = YouTubeDataApiCatalogProvider(client, "test-key")
+
+        try {
+            assertFailsWith<CancellationException> {
+                provider.searchChannels(CatalogRequest(query = "example"))
+            }
+            assertEquals(1, calls)
+        } finally {
+            client.close()
+        }
     }
 
     private fun jsonHeaders() =
