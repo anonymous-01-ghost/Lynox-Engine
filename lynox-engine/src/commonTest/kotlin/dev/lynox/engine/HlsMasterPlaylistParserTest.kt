@@ -1,0 +1,72 @@
+package dev.lynox.engine
+
+import dev.lynox.engine.extractor.HlsMasterPlaylistParser
+import dev.lynox.engine.extractor.MediaStreamKind
+import dev.lynox.engine.model.EngineError
+import dev.lynox.engine.model.EngineResult
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+
+class HlsMasterPlaylistParserTest {
+    private val parser = HlsMasterPlaylistParser()
+
+    @Test
+    fun parsesVariantMetadataAndRelativeUrls() {
+        val manifest = """#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=1280000,AVERAGE-BANDWIDTH=1100000,RESOLUTION=1280x720,FRAME-RATE=30.0,CODECS="avc1.64001f,mp4a.40.2"
+video/720/index.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=640x360,CODECS="avc1.4d401e"
+../360/index.m3u8
+"""
+        val result = assertIs<EngineResult.Success<*>>(
+            parser.parse("https://cdn.example.test/hls/master.m3u8", manifest)
+        )
+        val streams = result.value.let { (it as dev.lynox.engine.extractor.ResolvedMedia).streams }
+        assertEquals(2, streams.size)
+        assertEquals("https://cdn.example.test/hls/video/720/index.m3u8", streams[0].url)
+        assertEquals(1_100_000L, streams[0].bitrate)
+        assertEquals(1280, streams[0].width)
+        assertEquals(720, streams[0].height)
+        assertEquals("avc1.64001f,mp4a.40.2", streams[0].codecs)
+        assertEquals("https://cdn.example.test/360/index.m3u8", streams[1].url)
+    }
+
+    @Test
+    fun parsesSeparateAudioRendition() {
+        val manifest = """#EXTM3U
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="English",DEFAULT=YES,AUTOSELECT=YES,URI="audio/en.m3u8"
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1920x1080,AUDIO="audio",CODECS="avc1.640028,mp4a.40.2"
+video/1080.m3u8
+"""
+        val result = assertIs<EngineResult.Success<*>>(
+            parser.parse("https://cdn.example.test/master.m3u8", manifest)
+        )
+        val streams = (result.value as dev.lynox.engine.extractor.ResolvedMedia).streams
+        assertEquals(2, streams.size)
+        assertEquals(MediaStreamKind.VIDEO, streams[0].kind)
+        assertEquals("https://cdn.example.test/audio/en.m3u8", streams[1].url)
+        assertEquals(MediaStreamKind.AUDIO, streams[1].kind)
+    }
+
+    @Test
+    fun rejectsInvalidHeaderAndManifestWithoutVariants() {
+        val badHeader = assertIs<EngineResult.Failure>(
+            parser.parse("https://cdn.example.test/master.m3u8", "not a playlist")
+        )
+        assertIs<EngineError.InvalidRequest>(badHeader.error)
+
+        val noVariants = assertIs<EngineResult.Failure>(
+            parser.parse("https://cdn.example.test/master.m3u8", "#EXTM3U\n#EXT-X-VERSION:3")
+        )
+        assertIs<EngineError.InvalidRequest>(noVariants.error)
+    }
+
+    @Test
+    fun rejectsNonHttpManifestUrl() {
+        val result = assertIs<EngineResult.Failure>(
+            parser.parse("file:///tmp/master.m3u8", "#EXTM3U")
+        )
+        assertIs<EngineError.InvalidRequest>(result.error)
+    }
+}
