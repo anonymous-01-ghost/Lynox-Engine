@@ -13,11 +13,22 @@ kotlin {
 
     iosArm64()
     iosSimulatorArm64()
+    iosX64()
+
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
+        binaries.framework {
+            baseName = "LynoxEngine"
+            isStatic = true
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
         }
 
         commonTest.dependencies {
@@ -25,12 +36,15 @@ kotlin {
         }
 
         androidMain.dependencies {
+            implementation(libs.ktor.client.android)
         }
 
         jvmMain.dependencies {
+            implementation(libs.ktor.client.cio)
         }
 
         iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
