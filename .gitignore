@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Android
+local.properties
+.cxx/
+.externalNativeBuild/
+
+# Kotlin / Native
+.kotlin/
+ konan/
+*.hprof
+
+# macOS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
