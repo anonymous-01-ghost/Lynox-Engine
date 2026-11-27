@@ -28,3 +28,25 @@ data class MediaPlaybackCapabilities(
         require(maxHeight == null || maxHeight > 0) { "maxHeight must be positive" }
     }
 }
+
+
+/**
+ * Supplies the current playback client's capabilities.
+ *
+ * Platform integrations should implement this interface by querying their
+ * real playback stack. Keep implementations lightweight; capability probing
+ * must not download or decode media streams.
+ */
+fun interface MediaPlaybackCapabilityProvider {
+    suspend fun getCapabilities(): MediaPlaybackCapabilities
+}
+
+/**
+ * Provider for applications that already know their playback constraints.
+ * Useful for deterministic configurations and tests.
+ */
+class StaticMediaPlaybackCapabilityProvider(
+    private val capabilities: MediaPlaybackCapabilities
+) : MediaPlaybackCapabilityProvider {
+    override suspend fun getCapabilities(): MediaPlaybackCapabilities = capabilities
+}
