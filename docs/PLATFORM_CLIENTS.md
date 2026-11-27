@@ -54,7 +54,7 @@ A MediaResolver implementation may receive an injected HttpClient, but the gener
 
 ## Playback capability discovery
 
-The common module exposes `MediaPlaybackCapabilityProvider` and a static implementation for known profiles and tests. Native Android/Media3, iOS/AVFoundation and desktop-player implementations are not included yet. Each consuming application must currently provide a profile based on its actual player; do not infer support solely from the platform name. A future platform adapter must query the playback stack and be tested on that platform before it is described as an automatic capability detector.
+The common module exposes `MediaPlaybackCapabilityProvider` and a static implementation for known profiles and tests. Automatic Media3 renderer and desktop-player integrations are not included yet. Android codec discovery and an iOS AVFoundation format provider are described below. Each consuming application must currently provide a profile based on its actual player; do not infer support solely from the platform name. A future platform adapter must query the playback stack and be tested on that platform before it is described as an automatic capability detector.
 
 ### Android decoder capability provider
 
@@ -67,3 +67,14 @@ val capabilities = capabilityProvider.getCapabilities()
 
 The returned dimensions and bitrate limits are aggregate device-level ceilings, not a promise that one decoder supports every combination of those maxima. The provider does not report codec profile/level identifiers, does not inspect Media3 renderer configuration, and does not resolve or download media. Applications should still validate playback with their configured player. iOS/AVFoundation and desktop-player providers remain unimplemented.
 
+
+### iOS AVFoundation format provider
+
+The iOS source set includes `IosAvFoundationCapabilityProvider`. It reads the MIME types recognized by `AVURLAsset` and exposes the audio/video categories to the common selector.
+
+```kotlin
+val capabilityProvider = IosAvFoundationCapabilityProvider()
+val capabilities = capabilityProvider.getCapabilities()
+```
+
+This is framework-level container/MIME recognition, not a per-device codec-profile query or a guarantee that a particular AVPlayer item can play every stream. It does not inspect an active AVPlayer configuration, resolve media URLs, or download content. Device validation remains required.
