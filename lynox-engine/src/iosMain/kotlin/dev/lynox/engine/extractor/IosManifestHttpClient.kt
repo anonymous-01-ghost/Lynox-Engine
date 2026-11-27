@@ -11,6 +11,7 @@ import platform.Foundation.NSURLSessionDataTask
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.create
 import platform.Foundation.NSHTTPURLResponse
+import platform.Foundation.setValue
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -32,7 +33,7 @@ class IosManifestHttpClient : ManifestHttpClient {
             ?: throw IllegalArgumentException("Invalid manifest URL")
         val nativeRequest = NSMutableURLRequest.requestWithURL(url).apply {
             setHTTPMethod("GET")
-            timeoutInterval = request.timeoutMillis.toDouble() / 1000.0
+            setTimeoutInterval(request.timeoutMillis.toDouble() / 1000.0)
             setValue(
                 "application/vnd.apple.mpegurl, audio/mpegurl, text/plain",
                 forHTTPHeaderField = "Accept"
