@@ -77,8 +77,10 @@ class YouTubeDataApiProviderTest {
     }
 
     @Test
-    fun metadataMapsIsoDurationToSeconds() = runBlocking {
-        val client = HttpClient(MockEngine {
+    fun metadataMapsIsoDurationToSecondsAndTrimsId() = runBlocking {
+        var requestedId: String? = null
+        val client = HttpClient(MockEngine { request ->
+            requestedId = request.url.parameters["id"]
             respond(
                 content = """
                     {
@@ -99,11 +101,13 @@ class YouTubeDataApiProviderTest {
         })
         val provider = YouTubeDataApiProvider(client, "test-key")
 
-        val result = provider.getMediaInfo("video-123")
+        val result = provider.getMediaInfo(" video-123 ")
 
         val success = assertIs<EngineResult.Success<*>>(result)
         val item = success.value as dev.lynox.engine.model.MediaItem
         assertEquals(3723L, item.durationSeconds)
+        assertEquals("video-123", requestedId)
+        assertEquals("video-123", item.id)
         client.close()
     }
 
