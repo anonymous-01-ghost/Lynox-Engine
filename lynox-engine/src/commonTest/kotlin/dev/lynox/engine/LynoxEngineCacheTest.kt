@@ -75,6 +75,32 @@ class LynoxEngineCacheTest {
         assertEquals(1, calls)
     }
     @Test
+    fun successfulCatalogSearchIsCachedAndCleared() = runBlocking {
+        var calls = 0
+        val catalog = object : CatalogProvider {
+            override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
+                calls++
+                return EngineResult.Success(SearchPage(listOf(Channel("channel-1", "Channel"))))
+            }
+            override suspend fun getChannel(channelId: String) = EngineResult.Success(Channel(channelId, "Channel"))
+            override suspend fun searchPlaylists(request: CatalogRequest) = EngineResult.Success(SearchPage(listOf(Playlist("playlist-1", "Playlist"))))
+            override suspend fun getPlaylist(playlistId: String) = EngineResult.Success(Playlist(playlistId, "Playlist"))
+            override suspend fun getPlaylistEntries(playlistId: String, request: CatalogRequest) =
+                EngineResult.Success(SearchPage(listOf(PlaylistEntry("entry-1", "video-1", "Video"))))
+        }
+        val engine = LynoxEngine(catalogProvider = catalog)
+        val request = CatalogRequest(query = "science")
+
+        assertIs<EngineResult.Success<*>>(engine.searchChannels(request))
+        assertIs<EngineResult.Success<*>>(engine.searchChannels(request))
+        assertEquals(1, calls)
+
+        engine.clearCache()
+        assertIs<EngineResult.Success<*>>(engine.searchChannels(request))
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun catalogOperationsAreExposedThroughEngine() = runBlocking {
         var receivedQuery: String? = null
         val catalog = object : CatalogProvider {
