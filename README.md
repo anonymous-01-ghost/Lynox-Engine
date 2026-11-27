@@ -15,12 +15,13 @@ Independent Kotlin Multiplatform library targeting **Android, iOS and JVM deskto
 
 - Provider-neutral engine API and typed results.
 - Search pagination models.
-- Provider-neutral catalog contracts for channels, playlists and playlist entries (`dev.lynox.engine.catalog`); see [docs/CATALOG_API.md](docs/CATALOG_API.md). A concrete catalog provider adapter is not implemented yet.
+- Provider-neutral catalog contracts and YouTube catalog adapter for channel search, playlist search, channel/playlist metadata, and paginated playlist entries; see [docs/CATALOG_API.md](docs/CATALOG_API.md).
 - Official YouTube Data API v3 adapter:
   - video search through `search.list`;
   - public metadata and duration through `videos.list`.
+- YouTube catalog adapter using `search.list`, `channels.list`, `playlists.list` and `playlistItems.list`.
 - Ktor networking with Android, Darwin and CIO engines.
-- Configurable, bounded, in-memory LRU cache with TTL for successful search and metadata responses.
+- Configurable, bounded, in-memory LRU cache with TTL for successful video search and metadata responses.
 - Cache invalidation through `engine.clearCache()`.
 - Shared unit tests and GitHub Actions builds for Android, iOS and JVM.
 
@@ -64,7 +65,7 @@ iOS framework compilation requires macOS and Xcode.
 
 ## Integration notes
 
-The consuming app creates the Ktor `HttpClient` using its platform engine and injects it into `YouTubeDataApiProvider`. The app owns the client lifecycle and supplies its YouTube Data API key.
+The consuming app creates the Ktor `HttpClient` using its platform engine and injects it into `YouTubeDataApiProvider` and/or `YouTubeDataApiCatalogProvider`. Pass the catalog adapter as `catalogProvider` to `LynoxEngine` to enable channel and playlist operations. The app owns the client lifecycle and supplies its YouTube Data API key.
 
 Do not commit API keys. Restrict keys in Google Cloud and monitor API quota. A key embedded in a distributed client cannot be treated as a secret; apply API restrictions and evaluate a trusted backend if stronger credential protection is required.
 
