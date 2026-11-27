@@ -43,9 +43,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.3"
-      - name: Compile iOS device framework
-        run: gradle :lynox-engine:linkReleaseFrameworkIosArm64
-      - name: Compile iOS simulator framework (Apple Silicon)
-        run: gradle :lynox-engine:linkReleaseFrameworkIosSimulatorArm64
-      - name: Compile iOS simulator framework (Intel)
-        run: gradle :lynox-engine:linkReleaseFrameworkIosX64
+      - name: Assemble release XCFramework (device + simulators)
+        run: gradle :lynox-engine:assembleLynoxEngineReleaseXCFramework
+      - name: Upload release XCFramework
+        uses: actions/upload-artifact@v4
+        with:
+          name: LynoxEngine-iOS-Release-XCFramework
+          path: lynox-engine/build/XCFrameworks/release/LynoxEngine.xcframework
+          if-no-files-found: error
+          retention-days: 14
