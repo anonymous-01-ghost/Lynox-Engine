@@ -34,6 +34,6 @@ Common parser tests cover relative URL resolution, bitrate and resolution metada
 
 - Android: `AndroidManifestHttpClient` uses `HttpURLConnection` on `Dispatchers.IO`, applies connect/read timeouts, follows HTTP redirects and bounds bytes read.
 - JVM: `JvmManifestHttpClient` provides the same behavior for desktop/server-side JVM consumers without requiring a service.
-- iOS: `IosManifestHttpClient` uses `URLSession`, applies request timeout, follows standard redirects and supports coroutine cancellation. Its current data-task implementation buffers NSData before checking the configured byte ceiling; a delegate-based streaming implementation is still required for strict pre-buffer memory bounds.
+- iOS: `IosManifestHttpClient` uses `URLSession` delegate callbacks, applies request timeout, follows standard redirects, supports coroutine cancellation and accumulates received chunks only up to the configured byte ceiling. URLSession may allocate an individual incoming chunk before the delegate receives it.
 - `createPlatformHlsManifestResolver()` creates an `HlsManifestResolver` with the native transport for the current target. Pass it to `LynoxEngine(mediaResolver = ...)`. The factory is platform-specific and should be called from the corresponding Android, iOS or JVM source set.
 - The consuming app remains responsible for platform network policy, including Android cleartext restrictions and iOS App Transport Security.
