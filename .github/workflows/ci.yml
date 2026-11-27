@@ -26,9 +26,11 @@ jobs:
         run: gradle :lynox-engine:jvmTest
       - name: Compile Android
         run: gradle :lynox-engine:compileDebugKotlinAndroid
+      - name: Compile desktop JVM
+        run: gradle :lynox-engine:compileKotlinJvm
 
   ios:
-    name: iOS
+    name: iOS frameworks
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,5 +41,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.3"
-      - name: Compile iOS simulator target
-        run: gradle :lynox-engine:compileKotlinIosSimulatorArm64
+      - name: Compile iOS device framework
+        run: gradle :lynox-engine:linkReleaseFrameworkIosArm64
+      - name: Compile iOS simulator framework (Apple Silicon)
+        run: gradle :lynox-engine:linkReleaseFrameworkIosSimulatorArm64
+      - name: Compile iOS simulator framework (Intel)
+        run: gradle :lynox-engine:linkReleaseFrameworkIosX64
