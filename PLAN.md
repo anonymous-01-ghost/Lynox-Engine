@@ -146,5 +146,5 @@ Android now has an `AndroidMediaCodecCapabilityProvider` backed by `MediaCodecLi
 - [x] Add a provider contract and static provider for fixed profiles/tests.
 - [x] Add Android MediaCodec decoder MIME/capability discovery in androidMain (device validation still pending).
 - [ ] Integrate and validate Media3 renderer-specific capability discovery.
-- [ ] Implement and validate iOS/AVFoundation capability discovery.
+- [x] Add iOS AVFoundation MIME-format discovery in iosMain (device/AVPlayer validation still pending).
 - [ ] Implement and validate desktop-player capability discovery.
