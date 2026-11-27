@@ -54,12 +54,12 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 - LynoxEngine y contratos de búsqueda, metadatos y catálogo.
 - Modelos de resultados y errores tipados.
 - Caché LRU con TTL para resultados de metadatos/catálogo.
-- Reintentos HTTP acotados para los adaptadores heredados.
+- Infraestructura HTTP compartida de reintentos acotados.
 - Contrato MediaResolver, modelos ResolvedMedia/MediaStream y método resolveMedia().
 - Pruebas del contrato de resolución y validación básica de URL.
 
-### Heredado, no central
-- Los adaptadores YouTube Data API fueron retirados del core: no eran extractores y no correspondían al objetivo del proyecto.
+### Código retirado
+- Los adaptadores YouTube Data API y sus pruebas fueron eliminados del repositorio: no eran extractores y no correspondían al objetivo del proyecto.
 
 ### Pendiente
 - Implementar un primer adaptador de fuente permitido y verificable.
@@ -98,7 +98,7 @@ No se asumirá que una API de metadatos entrega streams. Para YouTube, la Data A
 
 ### Fase A — Corregir la dirección del proyecto
 - Documentación alineada al objetivo de biblioteca extractor.
-- Separar explícitamente adaptadores heredados de metadatos.
+- Retirar los adaptadores de metadatos basados en YouTube Data API del core.
 - Contrato común de resolución integrado en LynoxEngine.
 - Pruebas unitarias del contrato y validación de URL.
 
@@ -128,6 +128,10 @@ No se asumirá que una API de metadatos entrega streams. Para YouTube, la Data A
 
 **Estado:** pendiente.
 
-## 9. Criterio de finalización
+## 9. Integración objetivo con LynoxMusic
+
+La aplicación LynoxMusic actualmente usa NewPipe Extractor v0.27.0 desde YouTubeAudio.kt para búsqueda, metadatos, paginación y resolución de audio M4A progresivo. La especificación de migración está en docs/LYNOXMUSIC_MIGRATION.md. No se quitará la dependencia de NewPipe en LynoxMusic hasta que un adaptador propio supere las pruebas de paridad y reproducción.
+
+## 10. Criterio de finalización
 
 Lynox Engine solo se considerará extractor funcional cuando al menos un adaptador real pueda resolver una fuente admitida, devuelva variantes válidas, maneje errores y expiración, pase pruebas automatizadas y se integre con éxito en Android, iOS y JVM según las capacidades de cada fuente.
