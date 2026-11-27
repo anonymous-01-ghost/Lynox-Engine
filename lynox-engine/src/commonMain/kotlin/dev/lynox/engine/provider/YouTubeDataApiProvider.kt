@@ -18,6 +18,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.SerializationException
 import kotlinx.coroutines.CancellationException
 
 /**
@@ -142,6 +143,14 @@ class YouTubeDataApiProvider(
         block()
     } catch (cancelled: CancellationException) {
         throw cancelled
+    } catch (_: SerializationException) {
+        EngineResult.Failure(
+            EngineError.ProviderFailure("INVALID_RESPONSE", "YouTube returned malformed JSON")
+        )
+    } catch (_: IllegalStateException) {
+        EngineResult.Failure(
+            EngineError.ProviderFailure("INVALID_RESPONSE", "YouTube returned an unexpected JSON structure")
+        )
     } catch (error: Exception) {
         EngineResult.Failure(
             // Avoid exposing request URLs, which can contain the API key, in error messages.
