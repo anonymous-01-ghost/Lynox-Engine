@@ -7,6 +7,8 @@ import dev.lynox.engine.catalog.Channel
 import dev.lynox.engine.catalog.Playlist
 import dev.lynox.engine.catalog.PlaylistEntry
 import dev.lynox.engine.config.LynoxConfig
+import dev.lynox.engine.extractor.MediaResolver
+import dev.lynox.engine.extractor.ResolvedMedia
 import dev.lynox.engine.model.EngineError
 import dev.lynox.engine.model.EngineResult
 import dev.lynox.engine.model.MediaItem
@@ -23,7 +25,8 @@ class LynoxEngine(
     private val searchProvider: SearchProvider? = null,
     private val metadataProvider: MetadataProvider? = null,
     config: LynoxConfig = LynoxConfig(),
-    private val catalogProvider: CatalogProvider? = null
+    private val catalogProvider: CatalogProvider? = null,
+    private val mediaResolver: MediaResolver? = null
 ) {
     private val searchCache = LruTtlCache<PageCacheKey, SearchPage<MediaItem>>(
         maxEntries = config.maxCacheEntries,
@@ -168,6 +171,26 @@ class LynoxEngine(
             }
             is EngineResult.Failure -> result
         }
+    }
+
+    /**
+     * Resolves a source URL into available media renditions.
+     *
+     * Resolved stream URLs are deliberately not cached because providers may
+     * return short-lived, signed URLs.
+     */
+    suspend fun resolveMedia(sourceUrl: String): EngineResult<ResolvedMedia> {
+        val normalizedUrl = sourceUrl.trim()
+        val isHttpUrl = normalizedUrl.startsWith("https://", ignoreCase = true) ||
+            normalizedUrl.startsWith("http://", ignoreCase = true)
+        if (!isHttpUrl) {
+            return EngineResult.Failure(
+                EngineError.InvalidRequest("sourceUrl must be an absolute HTTP or HTTPS URL")
+            )
+        }
+        val resolver = mediaResolver
+            ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
+        return resolver.resolve(normalizedUrl)
     }
 
     private data class PageCacheKey(
