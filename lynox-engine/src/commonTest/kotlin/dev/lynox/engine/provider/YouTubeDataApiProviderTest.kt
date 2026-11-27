@@ -119,6 +119,25 @@ class YouTubeDataApiProviderTest {
         client.close()
     }
 
+    @Test
+    fun malformedJsonIsMappedToInvalidProviderResponse() = runBlocking {
+        val client = HttpClient(MockEngine {
+            respond(
+                content = """{ malformed json""",
+                status = HttpStatusCode.OK,
+                headers = jsonHeaders()
+            )
+        })
+        val provider = YouTubeDataApiProvider(client, "test-key")
+
+        val result = provider.search(SearchRequest("example"))
+
+        val failure = assertIs<EngineResult.Failure>(result)
+        val error = assertIs<dev.lynox.engine.model.EngineError.ProviderFailure>(failure.error)
+        assertEquals("INVALID_RESPONSE", error.code)
+        client.close()
+    }
+
     private fun jsonHeaders(): Headers =
         headersOf(HttpHeaders.ContentType, "application/json")
 }
