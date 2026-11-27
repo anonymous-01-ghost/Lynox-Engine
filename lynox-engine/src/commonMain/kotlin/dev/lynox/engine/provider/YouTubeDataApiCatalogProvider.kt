@@ -45,14 +45,17 @@ class YouTubeDataApiCatalogProvider(
             return EngineResult.Failure(EngineError.InvalidRequest("Channel search query cannot be blank"))
         }
         return requestSafely {
-            val root = getRoot("search") {
+            val root = when (val response = getRoot("search") {
                 parameter("part", "snippet")
                 parameter("type", "channel")
                 parameter("q", query)
                 parameter("maxResults", request.pageSize)
                 request.pageToken?.let { parameter("pageToken", it) }
                 regionCode?.let { parameter("regionCode", it) }
-            } ?: return@requestSafely lastFailure
+            }) {
+                is EngineResult.Success -> response.value
+                is EngineResult.Failure -> return@requestSafely response
+            }
 
             EngineResult.Success(
                 SearchPage(
@@ -73,10 +76,13 @@ class YouTubeDataApiCatalogProvider(
             return EngineResult.Failure(EngineError.InvalidRequest("Channel ID cannot be blank"))
         }
         return requestSafely {
-            val root = getRoot("channels") {
+            val root = when (val response = getRoot("channels") {
                 parameter("part", "snippet,statistics")
                 parameter("id", channelId.trim())
-            } ?: return@requestSafely lastFailure
+            }) {
+                is EngineResult.Success -> response.value
+                is EngineResult.Failure -> return@requestSafely response
+            }
 
             val item = root.array("items").firstOrNull()?.jsonObject
                 ?: return@requestSafely EngineResult.Failure(
@@ -103,14 +109,17 @@ class YouTubeDataApiCatalogProvider(
             return EngineResult.Failure(EngineError.InvalidRequest("Playlist search query cannot be blank"))
         }
         return requestSafely {
-            val root = getRoot("search") {
+            val root = when (val response = getRoot("search") {
                 parameter("part", "snippet")
                 parameter("type", "playlist")
                 parameter("q", query)
                 parameter("maxResults", request.pageSize)
                 request.pageToken?.let { parameter("pageToken", it) }
                 regionCode?.let { parameter("regionCode", it) }
-            } ?: return@requestSafely lastFailure
+            }) {
+                is EngineResult.Success -> response.value
+                is EngineResult.Failure -> return@requestSafely response
+            }
 
             EngineResult.Success(
                 SearchPage(
@@ -131,10 +140,13 @@ class YouTubeDataApiCatalogProvider(
             return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
         }
         return requestSafely {
-            val root = getRoot("playlists") {
+            val root = when (val response = getRoot("playlists") {
                 parameter("part", "snippet,contentDetails")
                 parameter("id", playlistId.trim())
-            } ?: return@requestSafely lastFailure
+            }) {
+                is EngineResult.Success -> response.value
+                is EngineResult.Failure -> return@requestSafely response
+            }
 
             val item = root.array("items").firstOrNull()?.jsonObject
                 ?: return@requestSafely EngineResult.Failure(
@@ -156,12 +168,15 @@ class YouTubeDataApiCatalogProvider(
             return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
         }
         return requestSafely {
-            val root = getRoot("playlistItems") {
+            val root = when (val response = getRoot("playlistItems") {
                 parameter("part", "snippet,contentDetails")
                 parameter("playlistId", playlistId.trim())
                 parameter("maxResults", request.pageSize)
                 request.pageToken?.let { parameter("pageToken", it) }
-            } ?: return@requestSafely lastFailure
+            }) {
+                is EngineResult.Success -> response.value
+                is EngineResult.Failure -> return@requestSafely response
+            }
 
             EngineResult.Success(
                 SearchPage(
@@ -188,23 +203,19 @@ class YouTubeDataApiCatalogProvider(
         }
     }
 
-    private var lastFailure: EngineResult.Failure =
-        EngineResult.Failure(EngineError.Unknown)
-
     private suspend fun getRoot(
         resource: String,
         configure: io.ktor.client.request.HttpRequestBuilder.() -> Unit
-    ): JsonObject? {
+    ): EngineResult<JsonObject> {
         val response = httpClient.get("$BASE_URL/$resource") {
             parameter("key", apiKey)
             configure()
         }
         val body = response.bodyAsText()
         if (!response.status.isSuccess()) {
-            lastFailure = EngineResult.Failure(mapHttpError(response.status.value, body))
-            return null
+            return EngineResult.Failure(mapHttpError(response.status.value, body))
         }
-        return json.parseToJsonElement(body).jsonObject
+        return EngineResult.Success(json.parseToJsonElement(body).jsonObject)
     }
 
     private suspend fun <T> requestSafely(
