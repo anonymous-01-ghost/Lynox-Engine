@@ -5,6 +5,10 @@ plugins {
     id("maven-publish")
 }
 
+// Keep published module coordinates aligned with the root release configuration.
+group = rootProject.group
+version = rootProject.version
+
 kotlin {
     androidTarget {
         publishLibraryVariants("release")
@@ -62,6 +66,26 @@ android {
 
 
 publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set("Lynox Engine")
+            description.set("Kotlin Multiplatform library for provider-neutral media search and catalog metadata.")
+            url.set("https://github.com/anonymous-01-ghost/Lynox-Engine")
+            licenses {
+                license {
+                    name.set("License not selected")
+                    url.set("https://github.com/anonymous-01-ghost/Lynox-Engine/blob/main/LICENSE_SELECTION.md")
+                    distribution.set("repo")
+                }
+            }
+            scm {
+                url.set("https://github.com/anonymous-01-ghost/Lynox-Engine")
+                connection.set("scm:git:https://github.com/anonymous-01-ghost/Lynox-Engine.git")
+                developerConnection.set("scm:git:ssh://git@github.com/anonymous-01-ghost/Lynox-Engine.git")
+            }
+        }
+    }
+
     repositories {
         maven {
             name = "buildDirectory"
