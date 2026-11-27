@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.library)
+    id("maven-publish")
 }
 
 kotlin {
@@ -56,5 +57,15 @@ android {
 
     defaultConfig {
         minSdk = 23
+    }
+}
+
+
+publishing {
+    repositories {
+        maven {
+            name = "buildDirectory"
+            url = uri(layout.buildDirectory.dir("repository"))
+        }
     }
 }
