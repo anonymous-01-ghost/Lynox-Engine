@@ -108,4 +108,30 @@ class RetryingRequestTest {
             client.close()
         }
     }
+
+    @Test
+    fun doesNotRetryTransportExceptions() = runBlocking {
+        var calls = 0
+        val failure = assertFailsWith<IllegalStateException> {
+            executeWithRetry(baseDelayMillis = 0, maxDelayMillis = 0) {
+                calls++
+                throw IllegalStateException("transport failed")
+            }
+        }
+        assertEquals("transport failed", failure.message)
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun propagatesCancellationWithoutRetrying() = runBlocking {
+        var calls = 0
+        assertFailsWith<CancellationException> {
+            executeWithRetry(baseDelayMillis = 0, maxDelayMillis = 0) {
+                calls++
+                throw CancellationException("cancel request")
+            }
+        }
+        assertEquals(1, calls)
+    }
+
 }
