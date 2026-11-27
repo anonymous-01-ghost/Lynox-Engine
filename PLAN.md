@@ -54,7 +54,6 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 - LynoxEngine y contratos de búsqueda, metadatos y catálogo.
 - Modelos de resultados y errores tipados.
 - Caché LRU con TTL para resultados de metadatos/catálogo.
-- Infraestructura HTTP compartida de reintentos acotados.
 - Contrato MediaResolver, modelos ResolvedMedia/MediaStream y método resolveMedia().
 - Pruebas del contrato de resolución y validación básica de URL.
 
