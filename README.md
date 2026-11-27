@@ -29,7 +29,7 @@ The core now exposes MediaResolver through LynoxEngine.resolveMedia(). It define
 - MediaResolver, ResolvedMedia, MediaStream and MediaStreamKind.
 - URL validation and tests for the resolver entry point.
 - In-memory cache for metadata/catalog responses.
-- Shared network retry infrastructure and typed errors.
+- Typed engine results and errors with a transport-neutral core.
 
 ## Technical boundary
 
