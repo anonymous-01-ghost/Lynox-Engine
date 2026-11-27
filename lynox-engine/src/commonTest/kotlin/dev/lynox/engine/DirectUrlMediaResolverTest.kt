@@ -8,12 +8,12 @@ import dev.lynox.engine.model.EngineResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 
 class DirectUrlMediaResolverTest {
 
     @Test
-    fun resolvesDirectAudioFileAndIgnoresQueryParameters() = runBlocking {
+    fun resolvesDirectAudioFileAndIgnoresQueryParameters() = runTest {
         val result = assertIs<EngineResult.Success<ResolvedMedia>>(
             DirectUrlMediaResolver().resolve(" https://cdn.example.test/music/song.m4a?token=temporary ")
         )
@@ -25,7 +25,7 @@ class DirectUrlMediaResolverTest {
     }
 
     @Test
-    fun resolvesDirectVideoFile() = runBlocking {
+    fun resolvesDirectVideoFile() = runTest {
         val result = assertIs<EngineResult.Success<ResolvedMedia>>(
             DirectUrlMediaResolver().resolve("https://cdn.example.test/video.webm")
         )
@@ -35,7 +35,7 @@ class DirectUrlMediaResolverTest {
     }
 
     @Test
-    fun rejectsWatchPagesAndUnknownExtensions() = runBlocking {
+    fun rejectsWatchPagesAndUnknownExtensions() = runTest {
         val result = assertIs<EngineResult.Failure>(
             DirectUrlMediaResolver().resolve("https://media.example.test/watch?id=123")
         )
@@ -48,7 +48,7 @@ class DirectUrlMediaResolverTest {
     }
 
     @Test
-    fun rejectsNonHttpUrls() = runBlocking {
+    fun rejectsNonHttpUrls() = runTest {
         val result = assertIs<EngineResult.Failure>(
             DirectUrlMediaResolver().resolve("file:///music/song.mp3")
         )
