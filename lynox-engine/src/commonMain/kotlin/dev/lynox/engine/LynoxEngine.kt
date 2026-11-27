@@ -35,7 +35,7 @@ class LynoxEngine(
         val provider = searchProvider
             ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
 
-        val cacheKey = "${request.query.trim()}| ${request.pageToken.orEmpty()}|${request.pageSize}"
+        val cacheKey = "${request.query.trim()}|${request.pageToken.orEmpty()}|${request.pageSize}"
         searchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
 
         return when (val result = provider.search(request)) {
@@ -67,7 +67,7 @@ class LynoxEngine(
     }
 
     /** Removes all in-memory cached search and metadata responses. */
-    fun clearCache() {
+    suspend fun clearCache() {
         searchCache.clear()
         metadataCache.clear()
     }
