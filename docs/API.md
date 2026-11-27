@@ -1,59 +1,26 @@
 # Public API
 
-This document describes the initial API surface. It is not yet a stable 1.0 contract.
+This document describes the pre-1.0 public API. It is not yet a stable 1.0 contract.
 
-## Entry point
+## Media extraction boundary
 
-`LynoxEngine` receives provider implementations through its constructor.
+The core defines a source-neutral extraction contract:
 
-## Official YouTube Data API provider
+- MediaResolver.resolve(sourceUrl) resolves a source URL.
+- ResolvedMedia represents the resolved media item.
+- MediaStream represents an available audio, video, or combined rendition.
+- MediaStreamKind distinguishes rendition types.
 
-The module includes `dev.lynox.engine.provider.YouTubeDataApiProvider`, which implements both `SearchProvider` and `MetadataProvider` using the official YouTube Data API v3.
+A source adapter is injected by the consuming application. The contract does not contain a built-in YouTube extractor and does not claim that media streams are already resolved.
 
-Example on JVM desktop:
+## Legacy search and metadata
 
-```kotlin
-import dev.lynox.engine.LynoxEngine
-import dev.lynox.engine.provider.YouTubeDataApiProvider
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-
-val httpClient = HttpClient(CIO)
-val youtube = YouTubeDataApiProvider(
-    httpClient = httpClient,
-    apiKey = System.getenv("YOUTUBE_API_KEY")
-)
-val engine = LynoxEngine(
-    searchProvider = youtube,
-    metadataProvider = youtube
-)
-
-// Close httpClient when the owning application shuts down.
-```
-
-Use the matching Ktor engine on Android (`Android`) and iOS (`Darwin`). The application owns the client lifecycle.
-
-## Search
-
-`SearchRequest` contains:
-- `query`: required non-blank search text;
-- `pageToken`: optional continuation token;
-- `pageSize`: 1–50, default 20.
-
-The YouTube adapter uses `search.list` with `type=video`. It maps video ID, title, description, channel, thumbnail and continuation token.
-
-## Metadata
-
-`MetadataProvider.getMediaInfo(mediaId)` uses `videos.list` to retrieve public metadata and ISO-8601 duration.
+The existing SearchProvider, MetadataProvider and CatalogProvider contracts remain available. Optional YouTubeDataApiProvider and YouTubeDataApiCatalogProvider implementations perform official YouTube Data API search/metadata calls only. They are not part of the extraction path and require an API key only when explicitly configured.
 
 ## Results and errors
 
-Operations return `EngineResult.Success` or `EngineResult.Failure`. Expected operational errors are represented by `EngineError`; callers should not parse provider-specific exception messages.
-
-## Scope
-
-The adapter supports search and public metadata only. YouTube Data API does not provide raw playback streams. Playback must be implemented through supported YouTube playback integrations and applicable YouTube policies.
+Operations use EngineResult.Success or EngineResult.Failure. Expected operational errors are represented by EngineError.
 
 ## Stability
 
-Names and signatures may change before version 1.0. New public APIs must include KDoc and tests.
+Names and signatures may change before version 1.0. Every new source adapter must include parser fixtures, failure cases, and platform integration tests before being called production-ready.
