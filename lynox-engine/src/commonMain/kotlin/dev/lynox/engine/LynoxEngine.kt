@@ -80,6 +80,9 @@ class LynoxEngine(
 
     /** Searches public channels using the configured catalog provider. */
     suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
+        if (request.pageSize !in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
+            return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
+        }
         val query = request.query?.trim().orEmpty()
         if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Channel search query cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
@@ -110,6 +113,9 @@ class LynoxEngine(
     }
 
     suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> {
+        if (request.pageSize !in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
+            return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
+        }
         val query = request.query?.trim().orEmpty()
         if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist search query cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
@@ -145,6 +151,9 @@ class LynoxEngine(
     ): EngineResult<SearchPage<PlaylistEntry>> {
         val id = playlistId.trim()
         if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
+        if (request.pageSize !in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
+            return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
+        }
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
         val normalized = request.copy(query = null)
         val cacheKey = "$id|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
@@ -156,6 +165,11 @@ class LynoxEngine(
             }
             is EngineResult.Failure -> result
         }
+    }
+
+    private companion object {
+        const val MIN_PAGE_SIZE = 1
+        const val MAX_PAGE_SIZE = 50
     }
 
     /** Removes all in-memory search, metadata, and catalog responses. */
