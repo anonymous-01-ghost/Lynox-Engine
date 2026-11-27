@@ -152,6 +152,46 @@ class LynoxEngineCacheTest {
     }
 
     @Test
+    fun playlistEntriesCacheIsScopedToPlaylistIdAndOpaquePageToken() = runBlocking {
+        var calls = 0
+        val catalog = object : CatalogProvider {
+            override suspend fun searchChannels(request: CatalogRequest) =
+                EngineResult.Success(SearchPage(listOf(Channel("channel", "Channel"))))
+            override suspend fun getChannel(channelId: String) =
+                EngineResult.Success(Channel(channelId, "Channel"))
+            override suspend fun searchPlaylists(request: CatalogRequest) =
+                EngineResult.Success(SearchPage(listOf(Playlist("playlist", "Playlist"))))
+            override suspend fun getPlaylist(playlistId: String) =
+                EngineResult.Success(Playlist(playlistId, "Playlist"))
+            override suspend fun getPlaylistEntries(
+                playlistId: String,
+                request: CatalogRequest
+            ): EngineResult<SearchPage<PlaylistEntry>> {
+                calls++
+                return EngineResult.Success(
+                    SearchPage(listOf(PlaylistEntry("entry-$playlistId", "video-$calls", "Video")))
+                )
+            }
+        }
+        val engine = LynoxEngine(catalogProvider = catalog)
+
+        val first = assertIs<EngineResult.Success<*>>(
+            engine.getPlaylistEntries("playlist-A", CatalogRequest(pageToken = "opaque|token"))
+        )
+        val second = assertIs<EngineResult.Success<*>>(
+            engine.getPlaylistEntries("playlist-B", CatalogRequest(pageToken = "opaque|token"))
+        )
+        val cachedFirst = assertIs<EngineResult.Success<*>>(
+            engine.getPlaylistEntries("playlist-A", CatalogRequest(pageToken = "opaque|token"))
+        )
+
+        assertEquals(2, calls)
+        assertEquals("video-1", ((first.value as SearchPage<*>).items.single() as PlaylistEntry).mediaId)
+        assertEquals("video-2", ((second.value as SearchPage<*>).items.single() as PlaylistEntry).mediaId)
+        assertEquals("video-1", ((cachedFirst.value as SearchPage<*>).items.single() as PlaylistEntry).mediaId)
+    }
+
+    @Test
     fun catalogOperationsAreExposedThroughEngine() = runBlocking {
         var receivedQuery: String? = null
         val catalog = object : CatalogProvider {
