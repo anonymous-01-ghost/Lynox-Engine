@@ -1,5 +1,11 @@
 package dev.lynox.engine
 
+import dev.lynox.engine.model.EngineError
+import dev.lynox.engine.model.EngineResult
+import dev.lynox.engine.model.MediaItem
+import dev.lynox.engine.model.SearchPage
+import dev.lynox.engine.model.SearchRequest
+
 /**
  * Main entry point for the Lynox Engine SDK.
  *
