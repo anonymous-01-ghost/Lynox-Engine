@@ -63,14 +63,11 @@ class MediaStreamSelector {
         val compatible = streams.filter { stream ->
             matchesKind(stream, request.kind) &&
                 (request.maxBitrate == null ||
-                    stream.bitrate == null ||
-                    stream.bitrate <= request.maxBitrate) &&
+                    (stream.bitrate != null && stream.bitrate <= request.maxBitrate)) &&
                 (request.maxWidth == null ||
-                    stream.width == null ||
-                    stream.width <= request.maxWidth) &&
+                    (stream.width != null && stream.width <= request.maxWidth)) &&
                 (request.maxHeight == null ||
-                    stream.height == null ||
-                    stream.height <= request.maxHeight)
+                    (stream.height != null && stream.height <= request.maxHeight))
         }
 
         if (compatible.isEmpty()) {
