@@ -33,6 +33,11 @@ class LynoxEngine(
         maxEntries = config.maxCacheEntries,
         ttl = config.cacheTtl
     )
+    private val channelSearchCache = LruTtlCache<String, SearchPage<Channel>>(config.maxCacheEntries, config.cacheTtl)
+    private val channelCache = LruTtlCache<String, Channel>(config.maxCacheEntries, config.cacheTtl)
+    private val playlistSearchCache = LruTtlCache<String, SearchPage<Playlist>>(config.maxCacheEntries, config.cacheTtl)
+    private val playlistCache = LruTtlCache<String, Playlist>(config.maxCacheEntries, config.cacheTtl)
+    private val playlistEntriesCache = LruTtlCache<String, SearchPage<PlaylistEntry>>(config.maxCacheEntries, config.cacheTtl)
 
     suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
         if (request.query.isBlank()) {
@@ -77,28 +82,60 @@ class LynoxEngine(
         val query = request.query?.trim().orEmpty()
         if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Channel search query cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
-        return provider.searchChannels(request.copy(query = query))
+        val normalized = request.copy(query = query)
+        val cacheKey = "$query|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        channelSearchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
+        return when (val result = provider.searchChannels(normalized)) {
+            is EngineResult.Success -> {
+                channelSearchCache.put(cacheKey, result.value)
+                result
+            }
+            is EngineResult.Failure -> result
+        }
     }
 
     suspend fun getChannel(channelId: String): EngineResult<Channel> {
         val id = channelId.trim()
         if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Channel ID cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
-        return provider.getChannel(id)
+        channelCache.get(id)?.let { return EngineResult.Success(it) }
+        return when (val result = provider.getChannel(id)) {
+            is EngineResult.Success -> {
+                channelCache.put(id, result.value)
+                result
+            }
+            is EngineResult.Failure -> result
+        }
     }
 
     suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> {
         val query = request.query?.trim().orEmpty()
         if (query.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist search query cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
-        return provider.searchPlaylists(request.copy(query = query))
+        val normalized = request.copy(query = query)
+        val cacheKey = "$query|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        playlistSearchCache.get(cacheKey)?.let { return EngineResult.Success(it) }
+        return when (val result = provider.searchPlaylists(normalized)) {
+            is EngineResult.Success -> {
+                playlistSearchCache.put(cacheKey, result.value)
+                result
+            }
+            is EngineResult.Failure -> result
+        }
     }
 
     suspend fun getPlaylist(playlistId: String): EngineResult<Playlist> {
         val id = playlistId.trim()
         if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
-        return provider.getPlaylist(id)
+        playlistCache.get(id)?.let { return EngineResult.Success(it) }
+        return when (val result = provider.getPlaylist(id)) {
+            is EngineResult.Success -> {
+                playlistCache.put(id, result.value)
+                result
+            }
+            is EngineResult.Failure -> result
+        }
     }
 
     suspend fun getPlaylistEntries(
@@ -108,12 +145,26 @@ class LynoxEngine(
         val id = playlistId.trim()
         if (id.isBlank()) return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
         val provider = catalogProvider ?: return EngineResult.Failure(EngineError.ProviderNotConfigured)
-        return provider.getPlaylistEntries(id, request.copy(query = null))
+        val normalized = request.copy(query = null)
+        val cacheKey = "$id|${normalized.pageToken.orEmpty()}|${normalized.pageSize}"
+        playlistEntriesCache.get(cacheKey)?.let { return EngineResult.Success(it) }
+        return when (val result = provider.getPlaylistEntries(id, normalized)) {
+            is EngineResult.Success -> {
+                playlistEntriesCache.put(cacheKey, result.value)
+                result
+            }
+            is EngineResult.Failure -> result
+        }
     }
 
-    /** Removes all in-memory cached search and metadata responses. */
+    /** Removes all in-memory search, metadata, and catalog responses. */
     suspend fun clearCache() {
         searchCache.clear()
         metadataCache.clear()
+        channelSearchCache.clear()
+        channelCache.clear()
+        playlistSearchCache.clear()
+        playlistCache.clear()
+        playlistEntriesCache.clear()
     }
 }
