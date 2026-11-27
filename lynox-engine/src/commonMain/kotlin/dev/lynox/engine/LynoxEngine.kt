@@ -183,7 +183,11 @@ class LynoxEngine(
         val normalizedUrl = sourceUrl.trim()
         val isHttpUrl = normalizedUrl.startsWith("https://", ignoreCase = true) ||
             normalizedUrl.startsWith("http://", ignoreCase = true)
-        if (!isHttpUrl) {
+        val authority = normalizedUrl.substringAfter("://", "")
+            .substringBefore("/")
+            .substringBefore("?")
+            .substringBefore("#")
+        if (!isHttpUrl || authority.isBlank() || authority.any(Char::isWhitespace)) {
             return EngineResult.Failure(
                 EngineError.InvalidRequest("sourceUrl must be an absolute HTTP or HTTPS URL")
             )
