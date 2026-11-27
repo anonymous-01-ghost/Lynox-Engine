@@ -2,20 +2,28 @@
 
 This document describes the pre-1.0 public API. It is not yet a stable 1.0 contract.
 
-## Media extraction boundary
+## Media extraction
 
-The core defines a source-neutral extraction contract:
+LynoxEngine accepts a source-specific MediaResolver:
 
-- MediaResolver.resolve(sourceUrl) resolves a source URL.
-- ResolvedMedia represents the resolved media item.
-- MediaStream represents an available audio, video, or combined rendition.
-- MediaStreamKind distinguishes rendition types.
+    val engine = LynoxEngine(mediaResolver = mySourceResolver)
+    val result = engine.resolveMedia("https://media.example/source/item")
 
-A source adapter is injected by the consuming application. The contract does not contain a built-in YouTube extractor and does not claim that media streams are already resolved.
+The resolver contract:
 
-## Legacy search and metadata
+    interface MediaResolver {
+        suspend fun resolve(sourceUrl: String): EngineResult<ResolvedMedia>
+    }
 
-The existing SearchProvider, MetadataProvider and CatalogProvider contracts remain available. Optional YouTubeDataApiProvider and YouTubeDataApiCatalogProvider implementations perform official YouTube Data API search/metadata calls only. They are not part of the extraction path and require an API key only when explicitly configured.
+The core validates that the source URL uses HTTP or HTTPS, normalizes surrounding whitespace, and delegates resolution. Resolved stream URLs are deliberately not cached because they may be signed or short-lived.
+
+ResolvedMedia contains the source URL, optional title/duration, a non-empty list of MediaStream renditions, and optional expiry time. Each MediaStream can describe audio, video, or combined media with MIME type, codecs, bitrate, dimensions, frame rate and content length.
+
+The contract does not include a built-in source adapter. A source-specific implementation must be added and tested before media extraction is available for that source.
+
+## Search and catalog contracts
+
+SearchProvider, MetadataProvider and CatalogProvider remain provider-neutral extension points. The repository no longer includes an official YouTube Data API adapter. These contracts do not imply that an arbitrary source supports search, channels, playlists, or metadata.
 
 ## Results and errors
 
