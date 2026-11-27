@@ -32,7 +32,7 @@ class IosManifestHttpClient : ManifestHttpClient {
         val url = NSURL.URLWithString(request.url)
             ?: throw IllegalArgumentException("Invalid manifest URL")
         val nativeRequest = NSMutableURLRequest.requestWithURL(url).apply {
-            setHTTPMethod("GET")
+            HTTPMethod = "GET"
             setTimeoutInterval(request.timeoutMillis.toDouble() / 1000.0)
             setValue(
                 "application/vnd.apple.mpegurl, audio/mpegurl, text/plain",
@@ -42,9 +42,7 @@ class IosManifestHttpClient : ManifestHttpClient {
 
         return suspendCancellableCoroutine { continuation ->
             lateinit var task: NSURLSessionDataTask
-            task = NSURLSession.sharedSession.dataTaskWithRequest(
-                request = nativeRequest,
-                completionHandler = { data: NSData?, response: platform.Foundation.NSURLResponse?, error: platform.Foundation.NSError? ->
+            task = NSURLSession.sharedSession.dataTaskWithRequest(nativeRequest) { data, response, error ->
                 if (continuation.isCancelled) return@dataTaskWithRequest
                 if (error != null) {
                     continuation.resumeWithException(
@@ -86,8 +84,7 @@ class IosManifestHttpClient : ManifestHttpClient {
                         finalUrl = response.URL?.absoluteString
                     )
                 )
-                }
-            )
+            }
             continuation.invokeOnCancellation { task.cancel() }
             task.resume()
         }
