@@ -55,3 +55,15 @@ A MediaResolver implementation may receive an injected HttpClient, but the gener
 ## Playback capability discovery
 
 The common module exposes `MediaPlaybackCapabilityProvider` and a static implementation for known profiles and tests. Native Android/Media3, iOS/AVFoundation and desktop-player implementations are not included yet. Each consuming application must currently provide a profile based on its actual player; do not infer support solely from the platform name. A future platform adapter must query the playback stack and be tested on that platform before it is described as an automatic capability detector.
+
+### Android decoder capability provider
+
+The Android source set includes `AndroidMediaCodecCapabilityProvider`. It queries regular Android decoder entries through `MediaCodecList` and returns supported MIME types, audio/video availability and aggregate upper bounds exposed by codec capabilities.
+
+```kotlin
+val capabilityProvider = AndroidMediaCodecCapabilityProvider()
+val capabilities = capabilityProvider.getCapabilities()
+```
+
+The returned dimensions and bitrate limits are aggregate device-level ceilings, not a promise that one decoder supports every combination of those maxima. The provider does not report codec profile/level identifiers, does not inspect Media3 renderer configuration, and does not resolve or download media. Applications should still validate playback with their configured player. iOS/AVFoundation and desktop-player providers remain unimplemented.
+
