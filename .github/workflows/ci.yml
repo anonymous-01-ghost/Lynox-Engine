@@ -28,6 +28,8 @@ jobs:
         run: gradle :lynox-engine:compileDebugKotlinAndroid
       - name: Compile desktop JVM
         run: gradle :lynox-engine:compileKotlinJvm
+      - name: Validate Maven publications
+        run: gradle :lynox-engine:publishAllPublicationsToBuildDirectoryRepository -PVERSION_NAME=0.1.0-validation
 
   ios:
     name: iOS frameworks
