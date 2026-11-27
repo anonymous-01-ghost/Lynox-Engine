@@ -135,3 +135,12 @@ La aplicación LynoxMusic actualmente usa NewPipe Extractor v0.27.0 desde YouTub
 ## 10. Criterio de finalización
 
 Lynox Engine solo se considerará extractor funcional cuando al menos un adaptador real pueda resolver una fuente admitida, devuelva variantes válidas, maneje errores y expiración, pase pruebas automatizadas y se integre con éxito en Android, iOS y JVM según las capacidades de cada fuente.
+
+
+## Playback capability providers
+
+- [x] Add a platform-neutral capability model and selector filtering.
+- [x] Add a provider contract and static provider for fixed profiles/tests.
+- [ ] Implement and validate native Android/Media3 capability discovery.
+- [ ] Implement and validate iOS/AVFoundation capability discovery.
+- [ ] Implement and validate desktop-player capability discovery.
