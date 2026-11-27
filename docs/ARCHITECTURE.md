@@ -1,29 +1,44 @@
 # Architecture
 
-Lynox Engine is organized around a provider-neutral public core and replaceable provider adapters.
+Lynox Engine is an in-process Kotlin Multiplatform library. The core owns normalized models and public contracts; source-specific adapters are separate implementations injected into the engine.
 
 ## Dependency direction
 
-```text
-Consumer application
-        |
-Public Lynox API
-        |
-Domain models and contracts
-        |
-Provider adapter interfaces
-        |
-Approved provider implementation
-```
+    Consuming application (LynoxMusic, Android/iOS/PC apps)
+                         |
+                  Lynox public API
+                         |
+             Core models + typed results
+                         |
+                MediaResolver contract
+                         |
+             Source-specific adapter module
+                         |
+          Permitted source access mechanisms
 
-The domain layer must not depend on undocumented YouTube endpoints or platform UI frameworks. Provider adapters translate provider responses into stable Lynox models. Platform-specific playback remains in platform modules and must use supported playback mechanisms.
+The core must not require a Lynox backend, Google Cloud project, YouTube Data API key, or AI service. Applications own their platform lifecycle and playback UI.
+
+## Extraction contract
+
+- MediaResolver.resolve(sourceUrl) resolves a source URL.
+- ResolvedMedia represents the resolved media item.
+- MediaStream represents an available audio, video, or combined rendition.
+- Stream URLs may expire. They are not placed in the existing long-lived metadata cache.
+- Adapters own source-specific parsing, network behavior, refresh rules and capability reporting.
+- An adapter must use access methods permitted for its source; it must not bypass DRM, authentication, paywalls or other access controls.
+
+The contract is not an extractor implementation. A source adapter is only complete after fixture-based parser tests, network/error tests, and playback validation on each claimed platform.
+
+## Legacy metadata adapters
+
+The repository currently contains optional YouTube Data API v3 adapters for search and public catalog metadata. They are separate from media extraction, do not resolve audio/video streams, and are not a required dependency of the core. They may be removed or moved to an optional module in a later breaking release.
 
 ## Source sets
 
-- `commonMain`: API contracts, models, validation and shared logic.
-- `androidMain`: Android-specific integrations.
-- `iosMain`: Kotlin/Native iOS integrations.
-- `jvmMain`: desktop/JVM integrations.
-- `commonTest`: platform-neutral tests.
+- commonMain: API contracts, models, validation and shared logic.
+- androidMain: Android-specific integrations.
+- iosMain: Kotlin/Native iOS integrations.
+- jvmMain: desktop/JVM integrations.
+- commonTest: platform-neutral tests.
 
-Keep platform-specific code behind small interfaces. Introduce `expect/actual` only where dependency injection cannot provide a simpler design.
+Keep source-specific code behind interfaces. Avoid embedding source-specific HTTP assumptions in the core.
