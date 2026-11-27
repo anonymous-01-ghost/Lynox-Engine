@@ -21,6 +21,7 @@ Independent Kotlin Multiplatform library targeting **Android, iOS and JVM deskto
   - public metadata and duration through `videos.list`.
 - YouTube catalog adapter using `search.list`, `channels.list`, `playlists.list` and `playlistItems.list`.
 - Ktor networking with Android, Darwin and CIO engines.
+- Bounded HTTP retries (up to 3 attempts) for transient `429` and `5xx` responses, honoring numeric `Retry-After` values within a capped delay. Authentication, quota (`403`), validation (`400`) and other client errors are not retried.
 - Configurable, bounded, in-memory LRU cache with TTL for successful video search, metadata, channel/playlist searches, channel/playlist metadata, and playlist-entry pages.
 - Cache invalidation for all cached response categories through `engine.clearCache()`. Failed provider responses are never cached; cache entries are process-local and expire according to the configured TTL.
 - Shared unit tests and GitHub Actions builds for Android, iOS and JVM.
