@@ -11,6 +11,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 
 class YouTubeDataApiCatalogProviderTest {
@@ -122,6 +123,24 @@ class YouTubeDataApiCatalogProviderTest {
         val failure = assertIs<EngineResult.Failure>(result)
         val error = assertIs<dev.lynox.engine.model.EngineError.ProviderFailure>(failure.error)
         assertEquals("INVALID_RESPONSE", error.code)
+        client.close()
+    }
+
+    @Test
+    fun httpErrorDoesNotExposeUpstreamResponseBody() = runBlocking {
+        val client = HttpClient(MockEngine {
+            respond(
+                content = """{"error":{"message":"private-sensitive-detail"}}""",
+                status = HttpStatusCode.BadRequest,
+                headers = jsonHeaders()
+            )
+        })
+        val provider = YouTubeDataApiCatalogProvider(client, "test-key")
+
+        val result = provider.searchChannels(CatalogRequest(query = "example"))
+
+        val failure = assertIs<EngineResult.Failure>(result)
+        assertFalse(failure.error.toString().contains("private-sensitive-detail"))
         client.close()
     }
 
