@@ -42,6 +42,7 @@ class YouTubeDataApiCatalogProvider(
     override suspend fun searchChannels(
         request: CatalogRequest
     ): EngineResult<SearchPage<Channel>> {
+        if (request.pageSize !in 1..50) return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
         val query = request.query?.trim().orEmpty()
         if (query.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Channel search query cannot be blank"))
@@ -106,6 +107,7 @@ class YouTubeDataApiCatalogProvider(
     override suspend fun searchPlaylists(
         request: CatalogRequest
     ): EngineResult<SearchPage<Playlist>> {
+        if (request.pageSize !in 1..50) return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
         val query = request.query?.trim().orEmpty()
         if (query.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Playlist search query cannot be blank"))
@@ -166,6 +168,7 @@ class YouTubeDataApiCatalogProvider(
         playlistId: String,
         request: CatalogRequest
     ): EngineResult<SearchPage<PlaylistEntry>> {
+        if (request.pageSize !in 1..50) return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
         if (playlistId.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Playlist ID cannot be blank"))
         }
