@@ -9,11 +9,11 @@ import dev.lynox.engine.model.EngineResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 
 class MediaResolverTest {
     @Test
-    fun resolverReceivesNormalizedHttpUrlAndReturnsStreams() = runBlocking {
+    fun resolverReceivesNormalizedHttpUrlAndReturnsStreams() = runTest {
         var receivedUrl: String? = null
         val resolver = object : MediaResolver {
             override suspend fun resolve(sourceUrl: String): EngineResult<ResolvedMedia> {
@@ -44,7 +44,7 @@ class MediaResolverTest {
     }
 
     @Test
-    fun resolverRejectsNonHttpSourceUrls() = runBlocking {
+    fun resolverRejectsNonHttpSourceUrls() = runTest {
         val engine = LynoxEngine(mediaResolver = object : MediaResolver {
             override suspend fun resolve(sourceUrl: String) =
                 EngineResult.Failure(EngineError.Unknown)
@@ -55,7 +55,7 @@ class MediaResolverTest {
     }
 
     @Test
-    fun resolverRejectsHttpUrlsWithoutAHost() = runBlocking {
+    fun resolverRejectsHttpUrlsWithoutAHost() = runTest {
         val result = assertIs<EngineResult.Failure>(
             LynoxEngine(mediaResolver = object : MediaResolver {
                 override suspend fun resolve(sourceUrl: String) =
@@ -66,7 +66,7 @@ class MediaResolverTest {
     }
 
     @Test
-    fun resolverMustBeConfigured() = runBlocking {
+    fun resolverMustBeConfigured() = runTest {
         val result = assertIs<EngineResult.Failure>(
             LynoxEngine().resolveMedia("https://media.example.test/watch")
         )
