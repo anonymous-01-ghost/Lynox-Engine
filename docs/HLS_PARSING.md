@@ -28,3 +28,12 @@ The result is a `ResolvedMedia` with HLS rendition URLs, MIME type `application/
 ## Validation
 
 Common parser tests cover relative URL resolution, bitrate and resolution metadata, quoted codec attributes containing commas, separate audio renditions, invalid headers, manifests without variants and non-HTTP(S) manifest URLs. Resolver tests cover successful loading, HTTP authorization/server errors, oversized bodies, invalid content types and transport exceptions.
+
+
+## Native transport implementations
+
+- Android: `AndroidManifestHttpClient` uses `HttpURLConnection` on `Dispatchers.IO`, applies connect/read timeouts, follows HTTP redirects and bounds bytes read.
+- JVM: `JvmManifestHttpClient` provides the same behavior for desktop/server-side JVM consumers without requiring a service.
+- iOS: `IosManifestHttpClient` uses `URLSession`, applies request timeout, follows standard redirects and supports coroutine cancellation. Its current data-task implementation buffers NSData before checking the configured byte ceiling; a delegate-based streaming implementation is still required for strict pre-buffer memory bounds.
+- The transport implementations are platform-specific and are not automatically selected. Inject the implementation for the target platform into `HlsManifestResolver`.
+- The consuming app remains responsible for platform network policy, including Android cleartext restrictions and iOS App Transport Security.
