@@ -43,7 +43,33 @@ The application may supply another MediaResolver implementation for a source it 
 
 This is an extension point, not an end-to-end source adapter. Do not use a fake or placeholder resolver in production.
 
-## 5. Platform artifacts
+## 5. Resolve an HLS master playlist with the native transport
+
+The library provides a platform factory so the consuming app does not need to
+construct the HTTP client manually. Import
+`dev.lynox.engine.extractor.createPlatformHlsManifestResolver` in the
+platform source set:
+
+    val engine = LynoxEngine(
+        mediaResolver = createPlatformHlsManifestResolver()
+    )
+    val result = engine.resolveMedia("https://cdn.example.test/master.m3u8")
+
+The factory selects:
+- Android: `AndroidManifestHttpClient` backed by `HttpURLConnection`.
+- JVM desktop: `JvmManifestHttpClient` backed by `HttpURLConnection`.
+- iOS: `IosManifestHttpClient` backed by `URLSession`.
+
+The resolver fetches and parses an HLS master playlist. It does not implement
+service-specific search, metadata extraction, protected-stream access, DRM
+handling, or media-segment downloading. The iOS URLSession completion-handler
+transport currently buffers the response before checking its configured byte
+limit; strict pre-buffer memory limiting still requires a delegate-based
+streaming implementation. The consuming app remains responsible for its
+platform network policy (Android cleartext configuration and iOS App Transport
+Security).
+
+## 6. Platform artifacts
 
 - Android: AAR.
 - JVM desktop: JAR.
@@ -55,6 +81,6 @@ Build the iOS bundle on macOS with Xcode:
 
 Expected output: lynox-engine/build/XCFrameworks/release/LynoxEngine.xcframework.
 
-## 6. Verification
+## 7. Verification
 
 A successful local publication task and platform CI jobs are required before calling a release verified. A queued workflow is not a passing build. Check GitHub Actions.
