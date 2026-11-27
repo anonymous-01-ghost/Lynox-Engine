@@ -15,6 +15,7 @@ Independent Kotlin Multiplatform library targeting **Android, iOS and JVM deskto
 
 - Provider-neutral engine API and typed results.
 - Search pagination models.
+- Provider-neutral catalog contracts for channels, playlists and playlist entries (`dev.lynox.engine.catalog`); see [docs/CATALOG_API.md](docs/CATALOG_API.md). A concrete catalog provider adapter is not implemented yet.
 - Official YouTube Data API v3 adapter:
   - video search through `search.list`;
   - public metadata and duration through `videos.list`.
