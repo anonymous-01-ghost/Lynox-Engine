@@ -11,7 +11,7 @@ Both official YouTube Data API adapters use the shared internal retry helper:
 - Uses bounded exponential delays starting at 250 ms, capped at 2 seconds.
 - Honors a numeric `Retry-After` response header, also capped at 2 seconds.
 - Does not retry validation, authentication, permission, quota (YouTube commonly reports quota exhaustion as 403), or other non-transient client errors.
-- Does not catch or retry coroutine cancellation. Transport exceptions are returned through the provider's normal network-error result rather than being retried.
+- Does not catch or retry coroutine cancellation. Transport exceptions are returned through the provider's normal network-error result rather than being retried. The retry helper does not classify or retry connection failures, because transport exceptions vary across the supported KMP targets.
 
 The retry helper is intentionally internal; applications do not need to configure it. A host app may additionally configure Ktor timeouts and logging. Avoid logging full request URLs because the API key is passed as a query parameter by the upstream API.
 
