@@ -1,0 +1,39 @@
+name: Kotlin Multiplatform CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jvm-android:
+    name: JVM and Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run JVM tests
+        run: gradle :lynox-engine:jvmTest
+      - name: Compile Android
+        run: gradle :lynox-engine:compileDebugKotlinAndroid
+
+  ios:
+    name: iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile iOS simulator target
+        run: gradle :lynox-engine:compileKotlinIosSimulatorArm64
