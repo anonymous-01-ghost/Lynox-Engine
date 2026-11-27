@@ -50,3 +50,8 @@ Add the matching Ktor engine dependency to the consuming app if it creates the c
 ## Source adapter responsibilities
 
 A MediaResolver implementation may receive an injected HttpClient, but the generic contract does not mandate Ktor or a particular network strategy. The adapter is responsible for source-specific redirects, headers, parsing, retries, expiration and refresh behavior. Never log authorization headers, cookies, tokens or signed URLs.
+
+
+## Playback capability discovery
+
+The common module exposes `MediaPlaybackCapabilityProvider` and a static implementation for known profiles and tests. Native Android/Media3, iOS/AVFoundation and desktop-player implementations are not included yet. Each consuming application must currently provide a profile based on its actual player; do not infer support solely from the platform name. A future platform adapter must query the playback stack and be tested on that platform before it is described as an automatic capability detector.
