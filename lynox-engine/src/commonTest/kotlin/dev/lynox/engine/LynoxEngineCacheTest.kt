@@ -13,26 +13,17 @@ import dev.lynox.engine.model.SearchPage
 import dev.lynox.engine.model.SearchRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.minutes
 
 class LynoxEngineCacheTest {
     @Test
-    fun invalidVideoSearchPageSizeIsRejectedBeforeProviderCall() = runBlocking {
-        var calls = 0
-        val provider = object : SearchProvider {
-            override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
-                calls++
-                return EngineResult.Success(SearchPage(emptyList()))
-            }
+    fun invalidVideoSearchPageSizeIsRejectedAtRequestConstruction() {
+        assertFailsWith<IllegalArgumentException> {
+            SearchRequest(query = "ambient", pageSize = 0)
         }
-        val engine = LynoxEngine(searchProvider = provider)
-
-        val result = engine.search(SearchRequest(query = "ambient", pageSize = 0))
-
-        assertIs<EngineResult.Failure>(result)
-        assertEquals(0, calls)
     }
 
     @Test
