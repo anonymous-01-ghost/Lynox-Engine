@@ -54,6 +54,7 @@ On macOS:
 - Architecture: docs/ARCHITECTURE.md
 - Public API: docs/API.md
 - Integration: docs/INTEGRATION.md
+- LynoxMusic migration target: docs/LYNOXMUSIC_MIGRATION.md
 - Platform support: docs/PLATFORM_SUPPORT.md
 - Compliance: docs/COMPLIANCE.md
 - License decision: LICENSE_SELECTION.md
