@@ -9,11 +9,13 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertFailsWith
 
 class YouTubeDataApiProviderTest {
 
@@ -179,6 +181,26 @@ class YouTubeDataApiProviderTest {
         val failure = assertIs<EngineResult.Failure>(result)
         assertFalse(failure.error.toString().contains("private-sensitive-detail"))
         client.close()
+    }
+
+
+    @Test
+    fun searchPropagatesCoroutineCancellation() = runBlocking {
+        var calls = 0
+        val client = HttpClient(MockEngine {
+            calls++
+            throw CancellationException("cancel search")
+        })
+        val provider = YouTubeDataApiProvider(client, "test-key")
+
+        try {
+            assertFailsWith<CancellationException> {
+                provider.search(SearchRequest("example"))
+            }
+            assertEquals(1, calls)
+        } finally {
+            client.close()
+        }
     }
 
     private fun jsonHeaders(): Headers =
