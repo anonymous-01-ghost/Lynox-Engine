@@ -1,89 +1,61 @@
 # Lynox Engine
 
-Independent Kotlin Multiplatform library targeting **Android, iOS and JVM desktop**.
+**Lynox Engine is an independent Kotlin Multiplatform media-extraction library project** for Android, iOS and JVM desktop. The intended integration is in-process: consuming applications add the library and call its API. A Lynox-hosted server, Google Cloud project, YouTube Data API key, or AI token is not a core requirement.
 
-> Current status: early development. The shared engine, official YouTube Data API adapter, in-memory cache and multiplatform CI are implemented. A stable 1.0 release is not yet available.
+> **Status: extraction foundation in development.** The current repository previously grew around YouTube Data API search and metadata. That implementation is not the target extractor and must not be represented as one. The new source-resolver contract is a foundation only; a production-ready source adapter and real-device playback validation are still required.
 
-## Modules and targets
+## Product objective
 
-- `:lynox-engine` — shared SDK module.
-- Android — Android library (AAR).
-- iOS — device and simulator frameworks (including Apple Silicon and Intel simulator targets).
-- Desktop — JVM library (JAR), usable on JVM-based desktop environments.
+Build Lynox-owned extraction infrastructure that LynoxMusic and other applications can consume as a dependency, without requiring NewPipe Extractor or another third-party extractor at runtime.
 
-## Features implemented
+Targets:
+- Android — Kotlin / AAR.
+- iOS — Kotlin/Native XCFramework, callable from Swift through a stable wrapper.
+- PC — Kotlin/JVM JAR.
 
-- Provider-neutral engine API and typed results.
-- Search pagination models.
-- Provider-neutral catalog contracts and YouTube catalog adapter for channel search, playlist search, channel/playlist metadata, and paginated playlist entries; see [docs/CATALOG_API.md](docs/CATALOG_API.md).
-- Official YouTube Data API v3 adapter:
-  - video search through `search.list`;
-  - public metadata and duration through `videos.list`.
-- YouTube catalog adapter using `search.list`, `channels.list`, `playlists.list` and `playlistItems.list`.
-- Ktor networking with Android, Darwin and CIO engines.
-- Bounded HTTP retries (up to 3 attempts) for transient `429` and `5xx` responses, honoring numeric `Retry-After` values within a capped delay. Authentication, quota (`403`), validation (`400`) and other client errors are not retried; see [networking and retry policy](docs/NETWORKING.md).
-- Configurable, bounded, in-memory LRU cache with TTL for successful video search, metadata, channel/playlist searches, channel/playlist metadata, and playlist-entry pages.
-- Cache invalidation for all cached response categories through `engine.clearCache()`. Failed provider responses are never cached; cache entries are process-local and expire according to the configured TTL.
-- Shared unit tests and GitHub Actions builds for Android, iOS and JVM.
+## Architecture
 
-## Basic integration
+- **Core:** provider-neutral models, typed results, validation and lifecycle.
+- **Extractor contracts:** source URL to normalized media metadata and available renditions.
+- **Source adapters:** separate implementations per source, isolated from the core.
+- **Platform integration:** platform HTTP clients and playback hand-off; no mandatory hosted backend.
 
-Create a platform-specific Ktor client and inject the official provider:
+The new MediaResolver contract and ResolvedMedia / MediaStream models define the boundary. They do not themselves extract media. Source adapters must be implemented and tested independently.
 
-```kotlin
-val provider = YouTubeDataApiProvider(
-    httpClient = httpClient,
-    apiKey = restrictedYouTubeApiKey
-)
+## Current repository contents
 
-val engine = LynoxEngine(
-    searchProvider = provider,
-    metadataProvider = provider,
-    config = LynoxConfig(
-        cacheTtl = 10.minutes,
-        maxCacheEntries = 100
-    )
-)
+- Kotlin Multiplatform targets for Android, iOS and JVM.
+- Provider-neutral search, metadata and catalog contracts.
+- In-memory cache for metadata/catalog responses.
+- Retry and typed-error infrastructure.
+- Legacy optional YouTube Data API adapters for search and public metadata. They are not the extraction engine, do not return media streams, and require a Google API key only if an application explicitly chooses to use them.
+- GitHub Actions for JVM/Android and iOS builds; actual status is shown in GitHub Actions.
 
-val result = engine.search(SearchRequest(query = "ambient music"))
-```
+## Important technical boundary
 
-Import `kotlin.time.Duration.Companion.minutes` when using the example TTL.
+The YouTube Data API returns search results and metadata, not raw audio/video streams. It cannot replace an extractor. Lynox Engine's core must not depend on Google Cloud quotas or API keys.
+
+Source adapters must use access methods permitted for the source. The project will not implement DRM circumvention, access-control bypass, private credential use, or evasion of service restrictions. For YouTube playback, use supported playback integrations. The generic resolver contract can serve sources for which direct media resolution is authorized.
 
 ## Build
 
-Requirements: JDK 17, Gradle 8.14.3, Android SDK for Android tasks, and macOS with Xcode for iOS tasks.
+Requirements: JDK 17, Gradle 8.14.3, Android SDK for Android tasks, and macOS/Xcode for iOS tasks. A Gradle Wrapper is not yet committed.
 
-The Gradle Wrapper has not yet been committed. Until it is added, use a compatible local Gradle installation:
+    gradle :lynox-engine:jvmTest
+    gradle :lynox-engine:compileKotlinJvm
+    gradle :lynox-engine:compileDebugKotlinAndroid
 
-```bash
-gradle :lynox-engine:jvmTest
-gradle :lynox-engine:compileKotlinJvm
-gradle :lynox-engine:compileDebugKotlinAndroid
-```
+On macOS, build the iOS XCFramework:
 
-iOS framework compilation requires macOS and Xcode.
+    gradle :lynox-engine:assembleLynoxEngineReleaseXCFramework
 
-## Integration guides
+## Documentation
 
-- [Platform-specific Ktor client setup](docs/PLATFORM_CLIENTS.md).
-- [Integration and dependency guide](docs/INTEGRATION.md), including local Maven publication, Android/JVM consumption, and the current iOS framework boundary.
-- [Publication configuration](docs/PUBLISHING.md).
+- Architecture: docs/ARCHITECTURE.md
+- Public API: docs/API.md
+- Integration: docs/INTEGRATION.md
+- Platform support: docs/PLATFORM_SUPPORT.md
+- Compliance boundary: docs/COMPLIANCE.md
+- License decision: LICENSE_SELECTION.md
 
-## Platform HTTP clients
-
-Platform-specific Ktor client setup for Android, iOS and JVM desktop—including engine selection, timeouts, client reuse and lifecycle—is documented in [PLATFORM_CLIENTS.md](docs/PLATFORM_CLIENTS.md). The module already declares Android, Darwin and CIO engines; consuming apps should align Ktor versions and create one application-scoped client.
-
-## Integration notes
-
-The consuming app creates the Ktor `HttpClient` using its platform engine and injects it into `YouTubeDataApiProvider` and/or `YouTubeDataApiCatalogProvider`. Pass the catalog adapter as `catalogProvider` to `LynoxEngine` to enable channel and playlist operations. The app owns the client lifecycle and supplies its YouTube Data API key.
-
-Do not commit API keys. Restrict keys in Google Cloud and monitor API quota. A key embedded in a distributed client cannot be treated as a secret; apply API restrictions and evaluate a trusted backend if stronger credential protection is required.
-
-## Playback and compliance boundary
-
-The YouTube Data API provides search and metadata; it does not provide raw media streams. This library does not scrape private endpoints, extract streams, bypass ads/DRM, or implement unauthorized playback. Use supported YouTube playback integrations and follow YouTube API Services terms and policies.
-
-## License
-
-The project license has not yet been selected. See [LICENSE_SELECTION.md](LICENSE_SELECTION.md) before external distribution.
+The project is pre-1.0. Do not treat a queued CI run or a configured Gradle task as a successful build.
