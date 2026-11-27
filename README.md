@@ -64,6 +64,12 @@ gradle :lynox-engine:compileDebugKotlinAndroid
 
 iOS framework compilation requires macOS and Xcode.
 
+## Integration guides
+
+- [Platform-specific Ktor client setup](docs/PLATFORM_CLIENTS.md).
+- [Integration and dependency guide](docs/INTEGRATION.md), including local Maven publication, Android/JVM consumption, and the current iOS framework boundary.
+- [Publication configuration](docs/PUBLISHING.md).
+
 ## Platform HTTP clients
 
 Platform-specific Ktor client setup for Android, iOS and JVM desktop—including engine selection, timeouts, client reuse and lifecycle—is documented in [PLATFORM_CLIENTS.md](docs/PLATFORM_CLIENTS.md). The module already declares Android, Darwin and CIO engines; consuming apps should align Ktor versions and create one application-scoped client.
