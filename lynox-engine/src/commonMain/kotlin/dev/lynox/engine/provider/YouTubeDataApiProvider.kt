@@ -44,7 +44,8 @@ class YouTubeDataApiProvider(
         if (request.pageSize !in 1..50) {
             return EngineResult.Failure(EngineError.InvalidRequest("pageSize must be between 1 and 50"))
         }
-        if (request.query.isBlank()) {
+        val query = request.query.trim()
+        if (query.isBlank()) {
             return EngineResult.Failure(EngineError.InvalidRequest("Search query cannot be blank"))
         }
 
@@ -54,7 +55,7 @@ class YouTubeDataApiProvider(
                     parameter("key", apiKey)
                     parameter("part", "snippet")
                     parameter("type", "video")
-                    parameter("q", request.query)
+                    parameter("q", query)
                     parameter("maxResults", request.pageSize)
                     request.pageToken?.let { parameter("pageToken", it) }
                     regionCode?.let { parameter("regionCode", it) }
