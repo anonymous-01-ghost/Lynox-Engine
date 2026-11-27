@@ -85,6 +85,22 @@ class MediaStreamSelectorTest {
         assertEquals(withinLimit.url, result.value.url)
     }
 
+
+    @Test
+    fun usesFullBitrateAsVideoTieBreakerAtSameResolution() {
+        val lowerBitrate = video("https://cdn.test/720-low.mp4", 1280, 720, 1_200_000)
+        val higherBitrate = video("https://cdn.test/720-high.mp4", 1280, 720, 2_500_000)
+
+        val result = assertIs<EngineResult.Success<MediaStream>>(
+            selector.select(
+                listOf(lowerBitrate, higherBitrate),
+                MediaSelectionRequest(kind = MediaSelectionKind.VIDEO)
+            )
+        )
+
+        assertEquals(higherBitrate.url, result.value.url)
+    }
+
     @Test
     fun returnsFailureWhenNoRenditionMatches() {
         val result = assertIs<EngineResult.Failure>(
