@@ -14,6 +14,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
+import kotlinx.serialization.SerializationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -227,6 +228,14 @@ class YouTubeDataApiCatalogProvider(
         block()
     } catch (cancelled: CancellationException) {
         throw cancelled
+    } catch (_: SerializationException) {
+        EngineResult.Failure(
+            EngineError.ProviderFailure("INVALID_RESPONSE", "YouTube returned malformed JSON")
+        )
+    } catch (_: IllegalStateException) {
+        EngineResult.Failure(
+            EngineError.ProviderFailure("INVALID_RESPONSE", "YouTube returned an unexpected JSON structure")
+        )
     } catch (_: Exception) {
         EngineResult.Failure(EngineError.Network("YouTube Data API request failed"))
     }
