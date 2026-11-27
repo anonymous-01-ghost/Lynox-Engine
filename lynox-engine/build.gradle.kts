@@ -7,7 +7,6 @@ plugins {
     id("maven-publish")
 }
 
-// Keep published module coordinates aligned with the root release configuration.
 group = rootProject.group
 version = rootProject.version
 
@@ -32,25 +31,11 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
         }
 
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.ktor.client.mock)
-        }
-
-        androidMain.dependencies {
-            implementation(libs.ktor.client.android)
-        }
-
-        jvmMain.dependencies {
-            implementation(libs.ktor.client.cio)
-        }
-
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
     }
 }
@@ -64,12 +49,11 @@ android {
     }
 }
 
-
 publishing {
     publications.withType<MavenPublication>().configureEach {
         pom {
             name.set("Lynox Engine")
-            description.set("Kotlin Multiplatform library for provider-neutral media search and catalog metadata.")
+            description.set("Independent Kotlin Multiplatform media extraction library.")
             url.set("https://github.com/anonymous-01-ghost/Lynox-Engine")
             scm {
                 url.set("https://github.com/anonymous-01-ghost/Lynox-Engine")
