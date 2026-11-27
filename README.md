@@ -64,6 +64,10 @@ gradle :lynox-engine:compileDebugKotlinAndroid
 
 iOS framework compilation requires macOS and Xcode.
 
+## Platform HTTP clients
+
+Platform-specific Ktor client setup for Android, iOS and JVM desktop—including engine selection, timeouts, client reuse and lifecycle—is documented in [PLATFORM_CLIENTS.md](docs/PLATFORM_CLIENTS.md). The module already declares Android, Darwin and CIO engines; consuming apps should align Ktor versions and create one application-scoped client.
+
 ## Integration notes
 
 The consuming app creates the Ktor `HttpClient` using its platform engine and injects it into `YouTubeDataApiProvider` and/or `YouTubeDataApiCatalogProvider`. Pass the catalog adapter as `catalogProvider` to `LynoxEngine` to enable channel and playlist operations. The app owns the client lifecycle and supplies its YouTube Data API key.
