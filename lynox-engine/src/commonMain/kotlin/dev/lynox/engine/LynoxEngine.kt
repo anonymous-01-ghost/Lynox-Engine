@@ -17,7 +17,7 @@ import dev.lynox.engine.model.SearchRequest
  * Main entry point for the Lynox Engine SDK.
  *
  * Provider implementations are injected by the consuming application.
- * Successful search and metadata responses are cached in memory according to [config].
+ * Successful search, metadata, and catalog responses are cached in memory according to [config].
  */
 class LynoxEngine(
     private val searchProvider: SearchProvider? = null,
