@@ -1,5 +1,6 @@
 package dev.lynox.engine
 
+import dev.lynox.engine.extractor.MediaPlaybackCapabilities
 import dev.lynox.engine.extractor.MediaSelectionKind
 import dev.lynox.engine.extractor.MediaSelectionRequest
 import dev.lynox.engine.extractor.MediaSelectionStrategy
@@ -107,6 +108,58 @@ class MediaStreamSelectorTest {
         )
 
         assertEquals(default.url, result.value.url)
+    }
+
+
+    @Test
+    fun filtersByPlaybackMimeCodecAndDeviceLimits() {
+        val unsupportedCodec = MediaStream(
+            url = "https://cdn.test/av1.mp4",
+            kind = MediaStreamKind.VIDEO,
+            mimeType = "video/mp4",
+            codecs = "av01.0.08M.08",
+            bitrate = 2_000_000,
+            width = 1920,
+            height = 1080
+        )
+        val tooLarge = video("https://cdn.test/1080-h264.mp4", 1920, 1080, 2_000_000).copy(
+            codecs = "avc1.640028"
+        )
+        val supported = video("https://cdn.test/720-h264.mp4", 1280, 720, 1_200_000).copy(
+            codecs = "avc1.4d401f"
+        )
+
+        val result = assertIs<EngineResult.Success<MediaStream>>(
+            selector.select(
+                listOf(unsupportedCodec, tooLarge, supported),
+                MediaSelectionRequest(
+                    kind = MediaSelectionKind.VIDEO,
+                    capabilities = MediaPlaybackCapabilities(
+                        supportedMimeTypes = setOf("video/*"),
+                        supportedCodecs = setOf("avc1.4d401f"),
+                        maxVideoBitrate = 1_500_000,
+                        maxWidth = 1280,
+                        maxHeight = 720
+                    )
+                )
+            )
+        )
+
+        assertEquals(supported.url, result.value.url)
+    }
+
+    @Test
+    fun rejectsMediaKindNotSupportedByPlaybackClient() {
+        val audioOnly = audio("https://cdn.test/audio.m4a", 128_000)
+        val result = assertIs<EngineResult.Failure>(
+            selector.select(
+                listOf(audioOnly),
+                MediaSelectionRequest(
+                    capabilities = MediaPlaybackCapabilities(supportsAudio = false)
+                )
+            )
+        )
+        assertIs<EngineError.InvalidRequest>(result.error)
     }
 
     private fun audio(url: String, bitrate: Long, isDefault: Boolean = false) =
