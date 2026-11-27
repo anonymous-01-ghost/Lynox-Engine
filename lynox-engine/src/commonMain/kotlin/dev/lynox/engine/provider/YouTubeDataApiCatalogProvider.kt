@@ -241,16 +241,16 @@ class YouTubeDataApiCatalogProvider(
     }
 
     private fun mapHttpError(status: Int, body: String): EngineError {
-        val message = body.take(300)
+        val isQuotaError = body.contains("quota", ignoreCase = true)
         return when (status) {
-            400 -> EngineError.InvalidRequest(message)
-            401 -> EngineError.Unauthorized(message)
-            403 -> if (body.contains("quota", ignoreCase = true)) {
+            400 -> EngineError.InvalidRequest("YouTube rejected the request (HTTP 400)")
+            401 -> EngineError.Unauthorized("YouTube API authentication failed")
+            403 -> if (isQuotaError) {
                 EngineError.QuotaExceeded()
             } else {
-                EngineError.Unauthorized(message)
+                EngineError.Unauthorized("YouTube API access was denied")
             }
-            else -> EngineError.ProviderFailure("HTTP_$status", message)
+            else -> EngineError.ProviderFailure("HTTP_$status", "YouTube request failed (HTTP $status)")
         }
     }
 
