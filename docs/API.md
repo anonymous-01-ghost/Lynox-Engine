@@ -30,6 +30,10 @@ Example:
 
 This adapter does not search websites, parse watch pages, enumerate playlists, or extract media from third-party services. A recognized extension does not guarantee that the remote server will serve a playable file; the playback client must handle HTTP and codec errors.
 
+## Rendition selection
+
+MediaStreamSelector selects one rendition from metadata already returned by a resolver. MediaSelectionRequest controls the requested media kind (audio, video, or either), ranking strategy (best quality, lowest bandwidth, or prefer default), and optional bitrate/dimension limits. When a limit is set, a rendition with a missing value for that limit is excluded because compliance cannot be verified. The selector does not probe or download remote URLs.
+
 ### Source-specific adapters
 
 The generic contract does not include a built-in adapter for YouTube or any other watch-page service. A source-specific implementation must use access methods permitted for that source and be tested before media extraction is available for it.
