@@ -23,7 +23,7 @@ The result is a `ResolvedMedia` with HLS rendition URLs, MIME type `application/
 - This is a master-playlist parser, not a media-segment downloader or HLS playback engine.
 - It does not decrypt segments, interpret DRM, obtain credentials, bypass access restrictions, or refresh signed URLs.
 - It does not yet parse media-playlist segment timelines, encryption keys, subtitles, I-frame variants, or rendition selection rules such as language and DEFAULT/AUTOSELECT.
-- `HlsManifestResolver` validates HTTP status, optional playlist content type, final redirect URL and response character limit. It maps transport failures to typed engine errors and propagates coroutine cancellation.\n- The transport is injected: implementations are still required for Android, iOS and JVM. Timeout enforcement, redirect policy and byte-level streaming limits belong to that transport.
+- `HlsManifestResolver` validates HTTP status, optional playlist content type, final redirect URL and response character limit. It maps transport failures to typed engine errors and propagates coroutine cancellation.\n- The transport is injected. Android, iOS and JVM implementations are included; platform-specific factories are available from each target source set. Timeout enforcement, redirect policy and byte-level streaming limits belong to the transport.
 
 ## Validation
 
@@ -35,5 +35,5 @@ Common parser tests cover relative URL resolution, bitrate and resolution metada
 - Android: `AndroidManifestHttpClient` uses `HttpURLConnection` on `Dispatchers.IO`, applies connect/read timeouts, follows HTTP redirects and bounds bytes read.
 - JVM: `JvmManifestHttpClient` provides the same behavior for desktop/server-side JVM consumers without requiring a service.
 - iOS: `IosManifestHttpClient` uses `URLSession`, applies request timeout, follows standard redirects and supports coroutine cancellation. Its current data-task implementation buffers NSData before checking the configured byte ceiling; a delegate-based streaming implementation is still required for strict pre-buffer memory bounds.
-- The transport implementations are platform-specific and are not automatically selected. Inject the implementation for the target platform into `HlsManifestResolver`.
+- `createPlatformHlsManifestResolver()` creates an `HlsManifestResolver` with the native transport for the current target. Pass it to `LynoxEngine(mediaResolver = ...)`. The factory is platform-specific and should be called from the corresponding Android, iOS or JVM source set.
 - The consuming app remains responsible for platform network policy, including Android cleartext restrictions and iOS App Transport Security.
