@@ -81,7 +81,8 @@ class MediaStreamSelector {
         val selected = when (request.strategy) {
             MediaSelectionStrategy.BEST_QUALITY ->
                 compatible.maxWithOrNull(
-                    compareBy<MediaStream> { qualityScore(it, request.kind) }
+                    compareBy<MediaStream> { primaryQualityScore(it, request.kind) }
+                        .thenBy { secondaryQualityScore(it, request.kind) }
                         .thenBy { it.isDefault }
                 )
 
@@ -94,7 +95,8 @@ class MediaStreamSelector {
             MediaSelectionStrategy.PREFER_DEFAULT ->
                 compatible.maxWithOrNull(
                     compareBy<MediaStream> { it.isDefault }
-                        .thenBy { qualityScore(it, request.kind) }
+                        .thenBy { primaryQualityScore(it, request.kind) }
+                        .thenBy { secondaryQualityScore(it, request.kind) }
                 )
         }
 
@@ -170,22 +172,22 @@ class MediaStreamSelector {
         MediaSelectionKind.AUDIO_OR_VIDEO -> true
     }
 
-    private fun qualityScore(
+    private fun primaryQualityScore(
         stream: MediaStream,
         requested: MediaSelectionKind
-    ): Long {
-        val bitrate = stream.bitrate ?: -1L
-        val pixels = (stream.width?.toLong() ?: 0L) *
-            (stream.height?.toLong() ?: 0L)
+    ): Long = when (requested) {
+        MediaSelectionKind.AUDIO -> stream.bitrate ?: -1L
+        MediaSelectionKind.VIDEO,
+        MediaSelectionKind.AUDIO_OR_VIDEO ->
+            (stream.width?.toLong() ?: 0L) * (stream.height?.toLong() ?: 0L)
+    }
 
-        return when (requested) {
-            MediaSelectionKind.AUDIO -> bitrate
-            MediaSelectionKind.VIDEO,
-            MediaSelectionKind.AUDIO_OR_VIDEO -> {
-                // Resolution is the primary video quality signal; bitrate breaks ties.
-                val safePixels = pixels.coerceAtMost(1_000_000_000L)
-                safePixels * 1_000L + bitrate.coerceAtLeast(-1L).coerceAtMost(999L)
-            }
-        }
+    private fun secondaryQualityScore(
+        stream: MediaStream,
+        requested: MediaSelectionKind
+    ): Long = when (requested) {
+        MediaSelectionKind.AUDIO -> 0L
+        MediaSelectionKind.VIDEO,
+        MediaSelectionKind.AUDIO_OR_VIDEO -> stream.bitrate ?: -1L
     }
 }
