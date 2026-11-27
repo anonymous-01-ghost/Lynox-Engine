@@ -59,9 +59,7 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 - Pruebas del contrato de resolución y validación básica de URL.
 
 ### Heredado, no central
-- YouTubeDataApiProvider y YouTubeDataApiCatalogProvider usan la API oficial para búsqueda y metadatos públicos.
-- Estos adaptadores no extraen audio/video y no son necesarios para el core extractor.
-- Deben permanecer claramente opcionales mientras se decide su traslado a un módulo separado o su retirada en una versión mayor.
+- Los adaptadores YouTube Data API fueron retirados del core: no eran extractores y no correspondían al objetivo del proyecto.
 
 ### Pendiente
 - Implementar un primer adaptador de fuente permitido y verificable.
