@@ -8,7 +8,6 @@ import dev.lynox.engine.model.MediaItem
 import dev.lynox.engine.model.SearchPage
 import dev.lynox.engine.model.SearchRequest
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
@@ -18,6 +17,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.CancellationException
 
 /**
  * Official YouTube Data API v3 adapter for search and public video metadata.
@@ -54,9 +54,10 @@ class YouTubeDataApiProvider(
                 regionCode?.let { parameter("regionCode", it) }
             }
 
-            val root = parseResponse(response.status.value, response.bodyAsText())
+            val responseBody = response.bodyAsText()
+            val root = parseResponse(response.status.value, responseBody)
                 ?: return@requestSafely EngineResult.Failure(
-                    mapHttpError(response.status.value, null)
+                    mapHttpError(response.status.value, responseBody)
                 )
 
             val items = root["items"]?.jsonArray.orEmpty().mapNotNull { element ->
@@ -130,11 +131,13 @@ class YouTubeDataApiProvider(
         }
     }
 
-    private suspend fun requestSafely(
-        block: suspend () -> EngineResult<MediaItem>
-    ): EngineResult<MediaItem> = try {
+    private suspend fun <T> requestSafely(
+        block: suspend () -> EngineResult<T>
+    ): EngineResult<T> = try {
         block()
-    } catch (error: Throwable) {
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
         EngineResult.Failure(
             EngineError.Network(error.message?.takeIf { it.isNotBlank() })
         )
