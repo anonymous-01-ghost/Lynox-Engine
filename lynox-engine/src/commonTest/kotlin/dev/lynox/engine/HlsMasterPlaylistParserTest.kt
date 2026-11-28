@@ -77,6 +77,24 @@ video/1080.m3u8
     }
 
     @Test
+    fun resolvesAudioGroupDeclaredAfterItsVariant() {
+        val manifest = """#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1280x720,AUDIO="audio",CODECS="avc1.64001f,mp4a.40.2"
+video/720.m3u8
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="English",DEFAULT=YES,URI="audio/en.m3u8"
+"""
+        val result = assertIs<EngineResult.Success<*>>(
+            parser.parse("https://cdn.example.test/master.m3u8", manifest)
+        )
+        val streams = (result.value as dev.lynox.engine.extractor.ResolvedMedia).streams
+
+        assertEquals(2, streams.size)
+        assertEquals(MediaStreamKind.VIDEO, streams[0].kind)
+        assertEquals(MediaStreamKind.AUDIO, streams[1].kind)
+        assertEquals("https://cdn.example.test/audio/en.m3u8", streams[1].url)
+    }
+
+    @Test
     fun resolvesQueryOnlyAndFragmentOnlyReferencesAgainstManifestPath() {
         val queryResult = assertIs<EngineResult.Success<*>>(
             parser.parse(
