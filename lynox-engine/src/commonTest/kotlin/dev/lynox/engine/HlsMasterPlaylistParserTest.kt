@@ -98,6 +98,45 @@ video/720.m3u8
         assertEquals("https://cdn.example.test/audio/en.m3u8", streams[1].url)
     }
 
+
+    @Test
+    fun parsesReferencedSubtitleRenditionsAndMetadata() {
+        val manifest = """#EXTM3U
+#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Español",LANGUAGE="es",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="subs/es.m3u8"
+#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",LANGUAGE="en",DEFAULT=NO,AUTOSELECT=NO,FORCED=YES,URI="../subs/en.m3u8"
+#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=1280x720,SUBTITLES="subs"
+video/720.m3u8
+"""
+        val result = assertIs<EngineResult.Success<*>>(
+            parser.parse("https://cdn.example.test/hls/master.m3u8", manifest)
+        )
+        val resolved = result.value as dev.lynox.engine.extractor.ResolvedMedia
+
+        assertEquals(2, resolved.subtitles.size)
+        val spanish = resolved.subtitles.single { it.language == "es" }
+        assertEquals("Español", spanish.label)
+        assertEquals("https://cdn.example.test/hls/subs/es.m3u8", spanish.url)
+        assertTrue(spanish.isDefault)
+        assertTrue(spanish.isAutoselect)
+        val english = resolved.subtitles.single { it.language == "en" }
+        assertEquals("https://cdn.example.test/subs/en.m3u8", english.url)
+        assertTrue(english.isForced)
+    }
+
+    @Test
+    fun ignoresUnreferencedSubtitleGroups() {
+        val manifest = """#EXTM3U
+#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="unused",NAME="Español",URI="subs/es.m3u8"
+#EXT-X-STREAM-INF:BANDWIDTH=1000000
+video.m3u8
+"""
+        val result = assertIs<EngineResult.Success<*>>(
+            parser.parse("https://cdn.example.test/master.m3u8", manifest)
+        )
+        val resolved = result.value as dev.lynox.engine.extractor.ResolvedMedia
+        assertTrue(resolved.subtitles.isEmpty())
+    }
+
     @Test
     fun resolvesQueryOnlyAndRelativeReferencesWithFragments() {
         val queryResult = assertIs<EngineResult.Success<*>>(
