@@ -151,7 +151,7 @@ video.m3u8
         val fragmentResult = assertIs<EngineResult.Success<*>>(
             parser.parse(
                 "https://cdn.example.test/hls/master.m3u8?session=old",
-                "#EXTM3U\\n#EXT-X-STREAM-INF:BANDWIDTH=1000\\nvideo/variant.m3u8#variant"
+                "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000\nvideo/variant.m3u8#variant"
             )
         )
         val fragmentStream = (fragmentResult.value as dev.lynox.engine.extractor.ResolvedMedia).streams.single()
