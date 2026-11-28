@@ -48,6 +48,39 @@ class HlsManifestResolverTest {
     }
 
     @Test
+    fun rejectsInvalidSourceUrlBeforeCallingTransport() = runTest {
+        var called = false
+        val resolver = HlsManifestResolver(object : ManifestHttpClient {
+            override suspend fun get(request: ManifestHttpRequest): ManifestHttpResponse {
+                called = true
+                return ManifestHttpResponse(200, playlist)
+            }
+        })
+
+        val result = assertIs<EngineResult.Failure>(
+            resolver.resolve("https:///missing-host/master.m3u8")
+        )
+
+        assertIs<EngineError.InvalidRequest>(result.error)
+        assertEquals(false, called)
+    }
+
+    @Test
+    fun trimsSourceUrlBeforeSendingRequest() = runTest {
+        var requestedUrl: String? = null
+        val resolver = HlsManifestResolver(object : ManifestHttpClient {
+            override suspend fun get(request: ManifestHttpRequest): ManifestHttpResponse {
+                requestedUrl = request.url
+                return ManifestHttpResponse(200, playlist)
+            }
+        })
+
+        resolver.resolve("  https://media.example.test/master.m3u8  ")
+
+        assertEquals("https://media.example.test/master.m3u8", requestedUrl)
+    }
+
+    @Test
     fun rejectsUnauthorizedResponse() = runTest {
         val resolver = HlsManifestResolver(object : ManifestHttpClient {
             override suspend fun get(request: ManifestHttpRequest) =
