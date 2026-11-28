@@ -42,7 +42,12 @@ data class PlaylistEntry(
     val webUrl: String? = null
 )
 
-/** Common paging input for catalog searches and playlist contents. */
+/**
+ * Common paging input for catalog searches and playlist contents.
+ *
+ * [pageToken] is opaque: providers must not assume a token is numeric or
+ * modify it before forwarding it to their source.
+ */
 data class CatalogRequest(
     val query: String? = null,
     val pageToken: String? = null,
@@ -54,11 +59,17 @@ data class CatalogRequest(
 }
 
 /**
- * Optional catalog capabilities implemented by a provider.
+ * Optional provider capability for channel and playlist catalog operations.
+ *
+ * Implementations should return [EngineResult.Failure] for expected upstream
+ * failures. Coroutine cancellation must propagate and must not be cached as a
+ * provider failure. The engine trims identifiers and search queries, validates
+ * page sizes, and caches successful results only. Page tokens remain opaque.
  *
  * A provider can implement this interface independently of video search and
  * metadata. Lynox Engine itself remains a library; applications inject the
- * provider implementation they choose.
+ * provider implementation they choose. Implementations must use access methods
+ * permitted for the application.
  */
 interface CatalogProvider {
     suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>>

@@ -16,3 +16,12 @@ A source adapter may implement CatalogProvider only when the source exposes thes
 ## Boundary
 
 The catalog contract is independent of media extraction. Search and metadata do not automatically provide playable media streams. The core has no Google Cloud API-key or quota dependency.
+
+## Provider implementation rules
+
+- Return `EngineResult.Success` only when a complete, valid response is available.
+- Represent expected upstream failures with `EngineResult.Failure`, using the most specific `EngineError` available.
+- Never swallow coroutine cancellation or convert cancellation into a cacheable result; allow cancellation exceptions to propagate.
+- Treat continuation tokens as opaque values. Do not parse, trim, or synthesize them unless the upstream protocol explicitly requires that transformation.
+- The engine trims search queries and resource identifiers, validates page sizes (1–50), and caches successful responses only. Failed results are requested again on the next call.
+- Do not invent fields that the source does not provide. Keep unavailable optional metadata null.

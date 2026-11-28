@@ -309,4 +309,81 @@ class LynoxEngineCacheTest {
         assertEquals(0, calls)
     }
 
+    @Test
+    fun failedCatalogOperationsAreNeverCached() = runTest {
+        val calls = mutableMapOf<String, Int>()
+        fun record(operation: String) {
+            calls[operation] = (calls[operation] ?: 0) + 1
+        }
+        val catalog = object : CatalogProvider {
+            override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
+                record("searchChannels")
+                return EngineResult.Failure(EngineError.Network("temporary"))
+            }
+            override suspend fun getChannel(channelId: String): EngineResult<Channel> {
+                record("getChannel")
+                return EngineResult.Failure(EngineError.Network("temporary"))
+            }
+            override suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> {
+                record("searchPlaylists")
+                return EngineResult.Failure(EngineError.Network("temporary"))
+            }
+            override suspend fun getPlaylist(playlistId: String): EngineResult<Playlist> {
+                record("getPlaylist")
+                return EngineResult.Failure(EngineError.Network("temporary"))
+            }
+            override suspend fun getPlaylistEntries(
+                playlistId: String,
+                request: CatalogRequest
+            ): EngineResult<SearchPage<PlaylistEntry>> {
+                record("getPlaylistEntries")
+                return EngineResult.Failure(EngineError.Network("temporary"))
+            }
+        }
+        val engine = LynoxEngine(catalogProvider = catalog)
+
+        repeat(2) {
+            assertIs<EngineResult.Failure>(engine.searchChannels(CatalogRequest(query = "science")))
+            assertIs<EngineResult.Failure>(engine.getChannel("channel-1"))
+            assertIs<EngineResult.Failure>(engine.searchPlaylists(CatalogRequest(query = "music")))
+            assertIs<EngineResult.Failure>(engine.getPlaylist("playlist-1"))
+            assertIs<EngineResult.Failure>(engine.getPlaylistEntries("playlist-1"))
+        }
+
+        assertEquals(
+            mapOf(
+                "searchChannels" to 2,
+                "getChannel" to 2,
+                "searchPlaylists" to 2,
+                "getPlaylist" to 2,
+                "getPlaylistEntries" to 2
+            ),
+            calls
+        )
+    }
+
+    @Test
+    fun blankCatalogSearchQueriesAreRejectedBeforeProviderCalls() = runTest {
+        var calls = 0
+        val catalog = object : CatalogProvider {
+            override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> {
+                calls++
+                return EngineResult.Success(SearchPage(emptyList()))
+            }
+            override suspend fun getChannel(channelId: String) = EngineResult.Success(Channel(channelId, "Channel"))
+            override suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> {
+                calls++
+                return EngineResult.Success(SearchPage(emptyList()))
+            }
+            override suspend fun getPlaylist(playlistId: String) = EngineResult.Success(Playlist(playlistId, "Playlist"))
+            override suspend fun getPlaylistEntries(playlistId: String, request: CatalogRequest) =
+                EngineResult.Success(SearchPage(emptyList<PlaylistEntry>()))
+        }
+        val engine = LynoxEngine(catalogProvider = catalog)
+
+        assertIs<EngineResult.Failure>(engine.searchChannels(CatalogRequest(query = "  ")))
+        assertIs<EngineResult.Failure>(engine.searchPlaylists(CatalogRequest(query = "\\t")))
+        assertEquals(0, calls)
+    }
+
 }
