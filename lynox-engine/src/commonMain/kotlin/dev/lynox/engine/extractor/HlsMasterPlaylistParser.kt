@@ -44,7 +44,10 @@ class HlsMasterPlaylistParser {
                             audioRenditions.getOrPut(group) { mutableListOf() } += AudioRendition(
                                 url = resolvedUri,
                                 codecs = attrs["CODECS"],
-                                isDefault = attrs["DEFAULT"].equals("YES", ignoreCase = true)
+                                isDefault = attrs["DEFAULT"].equals("YES", ignoreCase = true),
+                                language = attrs["LANGUAGE"]?.takeIf { it.isNotBlank() },
+                                label = attrs["NAME"]?.takeIf { it.isNotBlank() },
+                                isAutoselect = attrs["AUTOSELECT"].equals("YES", ignoreCase = true)
                             )
                         }
                     }
@@ -88,7 +91,10 @@ class HlsMasterPlaylistParser {
                     mimeType = "application/vnd.apple.mpegurl",
                     codecs = rendition.codecs ?: attrs["CODECS"]?.split(',')
                         ?.firstOrNull { it.trim().startsWith("mp4a", ignoreCase = true) }?.trim(),
-                    isDefault = rendition.isDefault
+                    isDefault = rendition.isDefault,
+                    language = rendition.language,
+                    label = rendition.label,
+                    isAutoselect = rendition.isAutoselect
                 )
             }
         }
@@ -105,7 +111,10 @@ class HlsMasterPlaylistParser {
     private data class AudioRendition(
         val url: String,
         val codecs: String?,
-        val isDefault: Boolean
+        val isDefault: Boolean,
+        val language: String?,
+        val label: String?,
+        val isAutoselect: Boolean
     )
 
     private data class Variant(
