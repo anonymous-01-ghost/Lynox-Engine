@@ -63,7 +63,7 @@ La base del extractor incorporada ahora contiene MediaResolver, ResolvedMedia, M
 
 ### Pendiente
 - Implementar un primer adaptador de fuente de servicio permitido y verificable (el resolver de archivos directos no cubre páginas de servicios).
-- Parser HLS master en commonMain, resolver sobre transporte inyectable y transportes nativos Android/JVM/iOS con fábricas por plataforma; falta validación CI exitosa, lectura iOS con límite antes del buffering y selección completa de rendiciones.
+- Parser HLS master en commonMain, resolver sobre transporte inyectable y transportes nativos Android/JVM/iOS con fábricas por plataforma. CI confirmó compilaciones JVM/Android e iOS XCFramework. El parser conserva múltiples rendiciones de audio y metadatos DEFAULT; faltan validación en dispositivos reales, selección por idioma/AUTOSELECT y pruebas adicionales con manifiestos reales anonimizados.
 - Modelo de expiración y renovación de URLs temporales.
 - Integrar las capacidades reales de cada reproductor para construir MediaSelectionRequest automáticamente.
 - Pruebas con fixtures reales anonimizados y respuestas cambiantes.
