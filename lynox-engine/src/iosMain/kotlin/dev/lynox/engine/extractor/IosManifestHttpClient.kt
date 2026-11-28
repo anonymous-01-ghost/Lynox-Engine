@@ -4,7 +4,6 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSData
-import platform.Foundation.NSMutableData
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSString
@@ -14,7 +13,7 @@ import platform.Foundation.NSURLSessionConfiguration
 import platform.Foundation.NSURLSessionDataDelegateProtocol
 import platform.Foundation.NSURLSessionDataTask
 import platform.Foundation.NSHTTPURLResponse
-import platform.Foundation.NSUTF8StringEncoding
+import platform.Foundation.NSISOLatin1StringEncoding
 import platform.Foundation.create
 import platform.Foundation.setValue
 import platform.darwin.NSObject
@@ -69,7 +68,8 @@ private class ManifestResponseDelegate(
     private val continuation: CancellableContinuation<ManifestHttpResponse>,
     private val maxBytes: Long
 ) : NSObject(), NSURLSessionDataDelegateProtocol {
-    private val receivedData = NSMutableData()
+    private val receivedChunks = mutableListOf<String>()
+    private var receivedByteCount = 0L
     private var responseTooLarge = false
 
     override fun URLSession(
@@ -77,13 +77,25 @@ private class ManifestResponseDelegate(
         dataTask: NSURLSessionDataTask,
         didReceiveData: NSData
     ) {
-        val nextSize = receivedData.length.toLong() + didReceiveData.length.toLong()
+        val nextSize = receivedByteCount + didReceiveData.length.toLong()
         if (nextSize > maxBytes) {
             responseTooLarge = true
             dataTask.cancel()
             return
         }
-        receivedData.appendBytes(didReceiveData.bytes, didReceiveData.length)
+        // Latin-1 maps each input byte to one Unicode code point, allowing
+        // chunks to be joined without corrupting UTF-8 sequences split at boundaries.
+        val chunk = NSString.create(
+            data = didReceiveData,
+            encoding = NSISOLatin1StringEncoding
+        ) as? String
+        if (chunk == null) {
+            responseTooLarge = true
+            dataTask.cancel()
+            return
+        }
+        receivedChunks += chunk
+        receivedByteCount = nextSize
     }
 
     override fun URLSession(
@@ -118,10 +130,11 @@ private class ManifestResponseDelegate(
             return
         }
 
-        val body = NSString.create(
-            data = receivedData as NSData,
-            encoding = NSUTF8StringEncoding
-        ) as? String
+        val latin1 = buildString {
+            receivedChunks.forEach(::append)
+        }
+        val bytes = ByteArray(latin1.length) { index -> latin1[index].code.toByte() }
+        val body = runCatching { bytes.decodeToString(throwOnInvalidSequence = true) }.getOrNull()
         if (body == null) {
             continuation.resumeWithException(
                 IllegalStateException("Manifest response is not valid UTF-8")
