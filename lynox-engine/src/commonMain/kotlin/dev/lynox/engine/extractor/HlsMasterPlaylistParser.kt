@@ -29,18 +29,22 @@ class HlsMasterPlaylistParser {
         }
 
         val audioRenditions = mutableMapOf<String, MutableList<AudioRendition>>()
+        val subtitleRenditions = mutableMapOf<String, MutableList<SubtitleRendition>>()
         val variants = mutableListOf<Variant>()
         var pendingVariant: Map<String, String>? = null
 
         for (line in lines.drop(1)) {
             if (line.startsWith("#EXT-X-MEDIA:", ignoreCase = true)) {
                 val attrs = parseAttributes(line.substringAfter(':'))
-                if (attrs["TYPE"].equals("AUDIO", ignoreCase = true)) {
+                val type = attrs["TYPE"]
+                if (type.equals("AUDIO", ignoreCase = true) ||
+                    type.equals("SUBTITLES", ignoreCase = true)
+                ) {
                     val group = attrs["GROUP-ID"]
                     val uri = attrs["URI"]
                     if (!group.isNullOrBlank() && !uri.isNullOrBlank()) {
                         val resolvedUri = resolveUrl(baseUrl, uri)
-                        if (resolvedUri != null) {
+                        if (resolvedUri != null && type.equals("AUDIO", ignoreCase = true)) {
                             audioRenditions.getOrPut(group) { mutableListOf() } += AudioRendition(
                                 url = resolvedUri,
                                 codecs = attrs["CODECS"],
@@ -48,6 +52,15 @@ class HlsMasterPlaylistParser {
                                 language = attrs["LANGUAGE"]?.takeIf { it.isNotBlank() },
                                 label = attrs["NAME"]?.takeIf { it.isNotBlank() },
                                 isAutoselect = attrs["AUTOSELECT"].equals("YES", ignoreCase = true)
+                            )
+                        } else if (resolvedUri != null) {
+                            subtitleRenditions.getOrPut(group) { mutableListOf() } += SubtitleRendition(
+                                url = resolvedUri,
+                                language = attrs["LANGUAGE"]?.takeIf { it.isNotBlank() },
+                                label = attrs["NAME"]?.takeIf { it.isNotBlank() },
+                                isDefault = attrs["DEFAULT"].equals("YES", ignoreCase = true),
+                                isAutoselect = attrs["AUTOSELECT"].equals("YES", ignoreCase = true),
+                                isForced = attrs["FORCED"].equals("YES", ignoreCase = true)
                             )
                         }
                     }
@@ -105,7 +118,27 @@ class HlsMasterPlaylistParser {
             )
         }
 
-        return EngineResult.Success(ResolvedMedia(sourceUrl = baseUrl, streams = streams.distinctBy { it.url to it.kind }))
+        val referencedSubtitleGroups = variants.mapNotNull { it.attributes["SUBTITLES"] }.toSet()
+        val subtitles = referencedSubtitleGroups.flatMap { subtitleRenditions[it].orEmpty() }
+            .distinctBy { it.url }
+            .map { rendition ->
+                MediaSubtitleTrack(
+                    url = rendition.url,
+                    language = rendition.language,
+                    label = rendition.label,
+                    isDefault = rendition.isDefault,
+                    isAutoselect = rendition.isAutoselect,
+                    isForced = rendition.isForced
+                )
+            }
+
+        return EngineResult.Success(
+            ResolvedMedia(
+                sourceUrl = baseUrl,
+                streams = streams.distinctBy { it.url to it.kind },
+                subtitles = subtitles
+            )
+        )
     }
 
     private data class AudioRendition(
@@ -115,6 +148,15 @@ class HlsMasterPlaylistParser {
         val language: String?,
         val label: String?,
         val isAutoselect: Boolean
+    )
+
+    private data class SubtitleRendition(
+        val url: String,
+        val language: String?,
+        val label: String?,
+        val isDefault: Boolean,
+        val isAutoselect: Boolean,
+        val isForced: Boolean
     )
 
     private data class Variant(
