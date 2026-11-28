@@ -52,7 +52,11 @@ class HlsMasterPlaylistParser {
             } else if (line.startsWith("#EXT-X-STREAM-INF:", ignoreCase = true)) {
                 pendingVariant = parseAttributes(line.substringAfter(':'))
             } else if (!line.startsWith("#") && pendingVariant != null) {
-                resolveUrl(baseUrl, line)?.let { variants += Variant(pendingVariant, it) }
+                val attributes = pendingVariant
+                val variantUrl = resolveUrl(baseUrl, line)
+                if (attributes != null && variantUrl != null) {
+                    variants += Variant(attributes, variantUrl)
+                }
                 pendingVariant = null
             }
         }
