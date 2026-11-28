@@ -95,7 +95,7 @@ video/720.m3u8
     }
 
     @Test
-    fun resolvesQueryOnlyAndFragmentOnlyReferencesAgainstManifestPath() {
+    fun resolvesQueryOnlyAndRelativeReferencesWithFragments() {
         val queryResult = assertIs<EngineResult.Success<*>>(
             parser.parse(
                 "https://cdn.example.test/hls/master.m3u8?session=old",
