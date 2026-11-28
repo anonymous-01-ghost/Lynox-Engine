@@ -14,7 +14,7 @@ The parser is deliberately transport-neutral: the application may obtain the man
 
 - `#EXT-X-STREAM-INF`: bandwidth (prefers average bandwidth), resolution, frame rate, codecs and variant URI.
 - `#EXT-X-MEDIA:TYPE=AUDIO`: all external audio rendition URIs associated by group ID, including the `DEFAULT=YES` flag.
-- Absolute, scheme-relative, root-relative and path-relative HTTP(S) rendition URLs, including query-only and fragment-only references.
+- Absolute, scheme-relative, root-relative and path-relative HTTP(S) rendition URLs, including query-only references and fragments on relative rendition paths.
 
 The result is a `ResolvedMedia` with HLS rendition URLs, MIME type `application/vnd.apple.mpegurl`, and available metadata. A variant with a separate audio group is represented by a VIDEO rendition plus every declared AUDIO rendition in that group. Audio renditions marked `DEFAULT=YES` are exposed with `isDefault=true`. Audio groups are resolved independently of whether their tags occur before or after the associated variant.
 
@@ -27,7 +27,7 @@ The result is a `ResolvedMedia` with HLS rendition URLs, MIME type `application/
 
 ## Validation
 
-Common parser tests cover relative URL resolution, query-only and fragment-only references, bitrate and resolution metadata, quoted codec attributes containing commas, multiple audio renditions, default audio flags, audio groups declared after variants, invalid headers, manifests without variants and non-HTTP(S) manifest URLs. Resolver tests cover successful loading, HTTP authorization/server errors, oversized bodies, invalid content types and transport exceptions.
+Common parser tests cover relative URL resolution, query-only references and relative-path fragments, bitrate and resolution metadata, quoted codec attributes containing commas, multiple audio renditions, default audio flags, audio groups declared after variants, invalid headers, manifests without variants and non-HTTP(S) manifest URLs. Resolver tests cover successful loading, HTTP authorization/server errors, oversized bodies, invalid content types and transport exceptions.
 
 
 ## Native transport implementations
