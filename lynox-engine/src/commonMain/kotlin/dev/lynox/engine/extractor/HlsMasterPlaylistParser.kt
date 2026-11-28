@@ -28,8 +28,8 @@ class HlsMasterPlaylistParser {
             return EngineResult.Failure(EngineError.InvalidRequest("Invalid HLS manifest header"))
         }
 
-        val streams = mutableListOf<MediaStream>()
         val audioRenditions = mutableMapOf<String, MutableList<AudioRendition>>()
+        val variants = mutableListOf<Variant>()
         var pendingVariant: Map<String, String>? = null
 
         for (line in lines.drop(1)) {
@@ -52,39 +52,40 @@ class HlsMasterPlaylistParser {
             } else if (line.startsWith("#EXT-X-STREAM-INF:", ignoreCase = true)) {
                 pendingVariant = parseAttributes(line.substringAfter(':'))
             } else if (!line.startsWith("#") && pendingVariant != null) {
-                val attrs = pendingVariant
-                val variantUrl = resolveUrl(baseUrl, line)
-                if (variantUrl != null) {
-                    val resolution = attrs["RESOLUTION"]?.split('x', 'X')
-                    val width = resolution?.getOrNull(0)?.toIntOrNull()?.takeIf { it > 0 }
-                    val height = resolution?.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }
-                    val bandwidth = attrs["AVERAGE-BANDWIDTH"]?.toLongOrNull()
-                        ?: attrs["BANDWIDTH"]?.toLongOrNull()
-                    val audioGroup = attrs["AUDIO"]
-                    val renditions = audioGroup?.let(audioRenditions::get).orEmpty()
-                    streams += MediaStream(
-                        url = variantUrl,
-                        kind = if (renditions.isEmpty()) MediaStreamKind.AUDIO_VIDEO else MediaStreamKind.VIDEO,
-                        mimeType = "application/vnd.apple.mpegurl",
-                        codecs = attrs["CODECS"],
-                        bitrate = bandwidth?.takeIf { it > 0 },
-                        width = width,
-                        height = height,
-                        frameRate = attrs["FRAME-RATE"]?.toFloatOrNull()?.takeIf { it > 0f },
-                        isDefault = streams.none { it.kind == MediaStreamKind.VIDEO || it.kind == MediaStreamKind.AUDIO_VIDEO }
-                    )
-                    renditions.forEach { rendition ->
-                        streams += MediaStream(
-                            url = rendition.url,
-                            kind = MediaStreamKind.AUDIO,
-                            mimeType = "application/vnd.apple.mpegurl",
-                            codecs = rendition.codecs ?: attrs["CODECS"]?.split(',')
-                                ?.firstOrNull { it.trim().startsWith("mp4a", ignoreCase = true) }?.trim(),
-                            isDefault = rendition.isDefault
-                        )
-                    }
-                }
+                resolveUrl(baseUrl, line)?.let { variants += Variant(pendingVariant, it) }
                 pendingVariant = null
+            }
+        }
+
+        val streams = mutableListOf<MediaStream>()
+        variants.forEach { variant ->
+            val attrs = variant.attributes
+            val resolution = attrs["RESOLUTION"]?.split('x', 'X')
+            val width = resolution?.getOrNull(0)?.toIntOrNull()?.takeIf { it > 0 }
+            val height = resolution?.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }
+            val bandwidth = attrs["AVERAGE-BANDWIDTH"]?.toLongOrNull()
+                ?: attrs["BANDWIDTH"]?.toLongOrNull()
+            val renditions = attrs["AUDIO"]?.let(audioRenditions::get).orEmpty()
+            streams += MediaStream(
+                url = variant.url,
+                kind = if (renditions.isEmpty()) MediaStreamKind.AUDIO_VIDEO else MediaStreamKind.VIDEO,
+                mimeType = "application/vnd.apple.mpegurl",
+                codecs = attrs["CODECS"],
+                bitrate = bandwidth?.takeIf { it > 0 },
+                width = width,
+                height = height,
+                frameRate = attrs["FRAME-RATE"]?.toFloatOrNull()?.takeIf { it > 0f },
+                isDefault = streams.none { it.kind == MediaStreamKind.VIDEO || it.kind == MediaStreamKind.AUDIO_VIDEO }
+            )
+            renditions.forEach { rendition ->
+                streams += MediaStream(
+                    url = rendition.url,
+                    kind = MediaStreamKind.AUDIO,
+                    mimeType = "application/vnd.apple.mpegurl",
+                    codecs = rendition.codecs ?: attrs["CODECS"]?.split(',')
+                        ?.firstOrNull { it.trim().startsWith("mp4a", ignoreCase = true) }?.trim(),
+                    isDefault = rendition.isDefault
+                )
             }
         }
 
@@ -101,6 +102,11 @@ class HlsMasterPlaylistParser {
         val url: String,
         val codecs: String?,
         val isDefault: Boolean
+    )
+
+    private data class Variant(
+        val attributes: Map<String, String>,
+        val url: String
     )
 
     private fun parseAttributes(value: String): Map<String, String> {
