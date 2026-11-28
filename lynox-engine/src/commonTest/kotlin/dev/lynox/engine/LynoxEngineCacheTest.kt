@@ -15,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import kotlin.time.Duration.Companion.minutes
 
@@ -384,6 +385,58 @@ class LynoxEngineCacheTest {
         assertIs<EngineResult.Failure>(engine.searchChannels(CatalogRequest(query = "  ")))
         assertIs<EngineResult.Failure>(engine.searchPlaylists(CatalogRequest(query = "\t")))
         assertEquals(0, calls)
+    }
+
+    @Test
+    fun coroutineCancellationPropagatesThroughEveryProviderContract() = runTest {
+        var calls = 0
+        suspend fun expectCancellation(operation: suspend () -> Unit) {
+            try {
+                operation()
+                throw AssertionError("Expected coroutine cancellation")
+            } catch (_: CancellationException) {
+                calls++
+            }
+        }
+
+        val search = object : SearchProvider {
+            override suspend fun search(request: SearchRequest): EngineResult<SearchPage<MediaItem>> {
+                throw CancellationException("cancel search")
+            }
+        }
+        val metadata = object : MetadataProvider {
+            override suspend fun getMediaInfo(mediaId: String): EngineResult<MediaItem> {
+                throw CancellationException("cancel metadata")
+            }
+        }
+        val catalog = object : CatalogProvider {
+            override suspend fun searchChannels(request: CatalogRequest): EngineResult<SearchPage<Channel>> =
+                throw CancellationException("cancel channel search")
+            override suspend fun getChannel(channelId: String): EngineResult<Channel> =
+                throw CancellationException("cancel channel lookup")
+            override suspend fun searchPlaylists(request: CatalogRequest): EngineResult<SearchPage<Playlist>> =
+                throw CancellationException("cancel playlist search")
+            override suspend fun getPlaylist(playlistId: String): EngineResult<Playlist> =
+                throw CancellationException("cancel playlist lookup")
+            override suspend fun getPlaylistEntries(
+                playlistId: String,
+                request: CatalogRequest
+            ): EngineResult<SearchPage<PlaylistEntry>> =
+                throw CancellationException("cancel playlist entries")
+        }
+        val searchEngine = LynoxEngine(searchProvider = search)
+        val metadataEngine = LynoxEngine(metadataProvider = metadata)
+        val catalogEngine = LynoxEngine(catalogProvider = catalog)
+
+        expectCancellation { searchEngine.search(SearchRequest("ambient")) }
+        expectCancellation { metadataEngine.getMediaInfo("media-1") }
+        expectCancellation { catalogEngine.searchChannels(CatalogRequest(query = "science")) }
+        expectCancellation { catalogEngine.getChannel("channel-1") }
+        expectCancellation { catalogEngine.searchPlaylists(CatalogRequest(query = "music")) }
+        expectCancellation { catalogEngine.getPlaylist("playlist-1") }
+        expectCancellation { catalogEngine.getPlaylistEntries("playlist-1") }
+
+        assertEquals(7, calls)
     }
 
 }
