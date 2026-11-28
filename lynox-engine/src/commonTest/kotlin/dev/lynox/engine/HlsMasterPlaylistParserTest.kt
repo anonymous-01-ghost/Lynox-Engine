@@ -7,6 +7,7 @@ import dev.lynox.engine.model.EngineResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class HlsMasterPlaylistParserTest {
     private val parser = HlsMasterPlaylistParser()
@@ -47,6 +48,53 @@ video/1080.m3u8
         assertEquals(MediaStreamKind.VIDEO, streams[0].kind)
         assertEquals("https://cdn.example.test/audio/en.m3u8", streams[1].url)
         assertEquals(MediaStreamKind.AUDIO, streams[1].kind)
+        assertTrue(streams[1].isDefault)
+    }
+
+    @Test
+    fun preservesAllAudioRenditionsInReferencedGroup() {
+        val manifest = """#EXTM3U
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="English",LANGUAGE="en",DEFAULT=YES,URI="audio/en.m3u8"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Spanish",LANGUAGE="es",DEFAULT=NO,URI="audio/es.m3u8"
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1920x1080,AUDIO="audio",CODECS="avc1.640028,mp4a.40.2"
+video/1080.m3u8
+"""
+        val result = assertIs<EngineResult.Success<*>>(
+            parser.parse("https://cdn.example.test/master.m3u8", manifest)
+        )
+        val streams = (result.value as dev.lynox.engine.extractor.ResolvedMedia).streams
+        val audio = streams.filter { it.kind == MediaStreamKind.AUDIO }
+
+        assertEquals(2, audio.size)
+        assertEquals(
+            setOf(
+                "https://cdn.example.test/audio/en.m3u8",
+                "https://cdn.example.test/audio/es.m3u8"
+            ),
+            audio.map { it.url }.toSet()
+        )
+        assertEquals(1, audio.count { it.isDefault })
+    }
+
+    @Test
+    fun resolvesQueryOnlyAndFragmentOnlyReferencesAgainstManifestPath() {
+        val queryResult = assertIs<EngineResult.Success<*>>(
+            parser.parse(
+                "https://cdn.example.test/hls/master.m3u8?session=old",
+                "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000\n?session=new"
+            )
+        )
+        val queryStream = (queryResult.value as dev.lynox.engine.extractor.ResolvedMedia).streams.single()
+        assertEquals("https://cdn.example.test/hls/master.m3u8?session=new", queryStream.url)
+
+        val fragmentResult = assertIs<EngineResult.Success<*>>(
+            parser.parse(
+                "https://cdn.example.test/hls/master.m3u8?session=old",
+                "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000\n#variant"
+            )
+        )
+        val fragmentStream = (fragmentResult.value as dev.lynox.engine.extractor.ResolvedMedia).streams.single()
+        assertEquals("https://cdn.example.test/hls/master.m3u8?session=old#variant", fragmentStream.url)
     }
 
     @Test
