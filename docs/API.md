@@ -17,7 +17,7 @@ The resolver contract:
 
 The core validates that the source URL uses HTTP or HTTPS, normalizes surrounding whitespace, and delegates resolution. Resolved stream URLs are deliberately not cached because they may be signed or short-lived.
 
-ResolvedMedia contains the source URL, optional title/duration, a non-empty list of MediaStream renditions, and optional expiry time. Each MediaStream can describe audio, video, or combined media with MIME type, codecs, bitrate, dimensions, frame rate and content length.
+ResolvedMedia contains the source URL, optional title/duration, a non-empty list of MediaStream renditions, and optional expiry time. Each MediaStream can describe audio, video, or combined media with MIME type, codecs, bitrate, dimensions, frame rate and content length. HLS alternate-audio renditions additionally expose `language` (BCP 47 tag when supplied), `label` (the HLS NAME), `isDefault` and `isAutoselect`.
 
 ### Built-in direct-file adapter
 
@@ -32,7 +32,7 @@ This adapter does not search websites, parse watch pages, enumerate playlists, o
 
 ## Rendition selection
 
-MediaStreamSelector selects one rendition from metadata already returned by a resolver. MediaSelectionRequest controls the requested media kind (audio, video, or either), ranking strategy (best quality, lowest bandwidth, or prefer default), and optional bitrate/dimension limits. When a limit is set, a rendition with a missing value for that limit is excluded because compliance cannot be verified. The selector does not probe or download remote URLs.
+MediaStreamSelector selects one rendition from metadata already returned by a resolver. MediaSelectionRequest controls the requested media kind (audio, video, or either), ranking strategy (best quality, lowest bandwidth, or prefer default), and optional bitrate/dimension limits. For audio selection, `preferredLanguage` ranks an exact language match first and then a matching primary language subtag (for example, `es` matches `es-MX`); if no match exists, selection falls back to the other compatible renditions. `preferAutoselect` optionally ranks HLS renditions marked AUTOSELECT=YES higher. When a limit is set, a rendition with a missing value for that limit is excluded because compliance cannot be verified. The selector does not probe or download remote URLs.
 
 ### Source-specific adapters
 
