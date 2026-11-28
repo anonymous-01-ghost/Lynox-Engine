@@ -14,7 +14,10 @@ data class MediaStream(
     val height: Int? = null,
     val frameRate: Float? = null,
     val contentLength: Long? = null,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val language: String? = null,
+    val label: String? = null,
+    val isAutoselect: Boolean = false
 )
 
 /** Media track category. */
