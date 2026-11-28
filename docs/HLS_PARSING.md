@@ -37,3 +37,17 @@ Common parser tests cover relative URL resolution, query-only references and rel
 - iOS: `IosManifestHttpClient` uses `URLSession` delegate callbacks, applies request timeout, follows standard redirects, supports coroutine cancellation and accumulates received chunks only up to the configured byte ceiling. URLSession may allocate an individual incoming chunk before the delegate receives it.
 - `createPlatformHlsManifestResolver()` creates an `HlsManifestResolver` with the native transport for the current target. Pass it to `LynoxEngine(mediaResolver = ...)`. The factory is platform-specific and should be called from the corresponding Android, iOS or JVM source set.
 - The consuming app remains responsible for platform network policy, including Android cleartext restrictions and iOS App Transport Security.
+
+
+## Subtitle renditions
+
+The master-playlist parser also exposes subtitle renditions declared with
+`#EXT-X-MEDIA:TYPE=SUBTITLES` when a stream variant references their group
+through its `SUBTITLES` attribute. Each `MediaSubtitleTrack` includes its
+resolved playlist URL, optional language and display label, and the
+`DEFAULT`, `AUTOSELECT`, and `FORCED` flags.
+
+Subtitle playlists are metadata only at this stage: Lynox Engine does not
+download subtitle segments, parse subtitle payloads, or perform DRM handling.
+The playback client remains responsible for choosing and rendering a supported
+subtitle format.
