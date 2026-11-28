@@ -102,7 +102,14 @@ class HlsManifestResolver(
             )
         }
 
-        return parser.parse(response.finalUrl?.takeIf(::isHttpUrl) ?: url, response.body)
+        val finalUrl = response.finalUrl?.trim()
+        if (finalUrl != null && !isHttpUrl(finalUrl)) {
+            return EngineResult.Failure(
+                EngineError.InvalidRequest("Manifest redirect destination must be an absolute HTTP or HTTPS URL")
+            )
+        }
+
+        return parser.parse(finalUrl ?: url, response.body)
     }
 
     private fun isHttpUrl(value: String): Boolean {
