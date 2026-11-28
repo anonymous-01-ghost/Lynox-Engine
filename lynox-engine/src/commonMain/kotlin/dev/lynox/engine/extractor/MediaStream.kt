@@ -38,10 +38,23 @@ data class ResolvedMedia(
     val title: String? = null,
     val durationSeconds: Long? = null,
     val streams: List<MediaStream>,
-    val expiresAtEpochSeconds: Long? = null
+    val expiresAtEpochSeconds: Long? = null,
+    val subtitles: List<MediaSubtitleTrack> = emptyList()
 ) {
     init {
         require(sourceUrl.isNotBlank()) { "sourceUrl cannot be blank" }
         require(streams.isNotEmpty()) { "At least one media stream is required" }
     }
 }
+
+
+/** A subtitle rendition declared by an HLS master playlist. */
+@Serializable
+data class MediaSubtitleTrack(
+    val url: String,
+    val language: String? = null,
+    val label: String? = null,
+    val isDefault: Boolean = false,
+    val isAutoselect: Boolean = false,
+    val isForced: Boolean = false
+)
