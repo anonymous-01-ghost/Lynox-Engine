@@ -28,7 +28,9 @@ data class MediaSelectionRequest(
     val maxBitrate: Long? = null,
     val maxWidth: Int? = null,
     val maxHeight: Int? = null,
-    val capabilities: MediaPlaybackCapabilities? = null
+    val capabilities: MediaPlaybackCapabilities? = null,
+    val preferredLanguage: String? = null,
+    val preferAutoselect: Boolean = false
 ) {
     init {
         require(maxBitrate == null || maxBitrate > 0) {
@@ -81,20 +83,26 @@ class MediaStreamSelector {
         val selected = when (request.strategy) {
             MediaSelectionStrategy.BEST_QUALITY ->
                 compatible.maxWithOrNull(
-                    compareBy<MediaStream> { primaryQualityScore(it, request.kind) }
+                    compareBy<MediaStream> { languageScore(it, request.preferredLanguage) }
+                        .thenBy { autoselectScore(it, request.preferAutoselect) }
+                        .thenBy { primaryQualityScore(it, request.kind) }
                         .thenBy { secondaryQualityScore(it, request.kind) }
                         .thenBy { it.isDefault }
                 )
 
             MediaSelectionStrategy.LOWEST_BANDWIDTH ->
                 compatible.minWithOrNull(
-                    compareBy<MediaStream> { it.bitrate ?: Long.MAX_VALUE }
+                    compareBy<MediaStream> { languageScore(it, request.preferredLanguage) * -1 }
+                        .thenBy { autoselectScore(it, request.preferAutoselect) * -1 }
+                        .thenBy { it.bitrate ?: Long.MAX_VALUE }
                         .thenByDescending { it.isDefault }
                 )
 
             MediaSelectionStrategy.PREFER_DEFAULT ->
                 compatible.maxWithOrNull(
                     compareBy<MediaStream> { it.isDefault }
+                        .thenBy { languageScore(it, request.preferredLanguage) }
+                        .thenBy { autoselectScore(it, request.preferAutoselect) }
                         .thenBy { primaryQualityScore(it, request.kind) }
                         .thenBy { secondaryQualityScore(it, request.kind) }
                 )
@@ -103,6 +111,18 @@ class MediaStreamSelector {
         return selected?.let { EngineResult.Success(it) }
             ?: EngineResult.Failure(EngineError.Unknown)
     }
+
+    private fun languageScore(stream: MediaStream, preferredLanguage: String?): Int {
+        val actual = stream.language?.trim()?.replace('_', '-') ?: return 0
+        val preferred = preferredLanguage?.trim()?.replace('_', '-') ?: return 0
+        if (actual.equals(preferred, ignoreCase = true)) return 2
+        val actualBase = actual.substringBefore('-')
+        val preferredBase = preferred.substringBefore('-')
+        return if (actualBase.equals(preferredBase, ignoreCase = true)) 1 else 0
+    }
+
+    private fun autoselectScore(stream: MediaStream, preferAutoselect: Boolean): Int =
+        if (preferAutoselect && stream.isAutoselect) 1 else 0
 
     private fun matchesCapabilities(
         stream: MediaStream,
