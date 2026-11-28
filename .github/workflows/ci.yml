@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest validation for each branch; rapid pushes must not
+# leave a queue of obsolete builds consuming runners.
+concurrency:
+  group: lynox-engine-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   jvm-android:
     name: JVM and Android
