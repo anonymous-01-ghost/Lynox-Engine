@@ -29,8 +29,8 @@ class HlsMasterPlaylistParser {
         }
 
         val streams = mutableListOf<MediaStream>()
+        val audioRenditions = mutableMapOf<String, MutableList<AudioRendition>>()
         var pendingVariant: Map<String, String>? = null
-        var audioGroupUris = emptyMap<String, String>()
 
         for (line in lines.drop(1)) {
             if (line.startsWith("#EXT-X-MEDIA:", ignoreCase = true)) {
@@ -39,13 +39,20 @@ class HlsMasterPlaylistParser {
                     val group = attrs["GROUP-ID"]
                     val uri = attrs["URI"]
                     if (!group.isNullOrBlank() && !uri.isNullOrBlank()) {
-                        resolveUrl(baseUrl, uri)?.let { audioGroupUris = audioGroupUris + (group to it) }
+                        val resolvedUri = resolveUrl(baseUrl, uri)
+                        if (resolvedUri != null) {
+                            audioRenditions.getOrPut(group) { mutableListOf() } += AudioRendition(
+                                url = resolvedUri,
+                                codecs = attrs["CODECS"],
+                                isDefault = attrs["DEFAULT"].equals("YES", ignoreCase = true)
+                            )
+                        }
                     }
                 }
             } else if (line.startsWith("#EXT-X-STREAM-INF:", ignoreCase = true)) {
                 pendingVariant = parseAttributes(line.substringAfter(':'))
             } else if (!line.startsWith("#") && pendingVariant != null) {
-                val attrs = pendingVariant!!
+                val attrs = pendingVariant
                 val variantUrl = resolveUrl(baseUrl, line)
                 if (variantUrl != null) {
                     val resolution = attrs["RESOLUTION"]?.split('x', 'X')
@@ -53,25 +60,27 @@ class HlsMasterPlaylistParser {
                     val height = resolution?.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }
                     val bandwidth = attrs["AVERAGE-BANDWIDTH"]?.toLongOrNull()
                         ?: attrs["BANDWIDTH"]?.toLongOrNull()
-                    val audioUrl = attrs["AUDIO"]?.let(audioGroupUris::get)
+                    val audioGroup = attrs["AUDIO"]
+                    val renditions = audioGroup?.let(audioRenditions::get).orEmpty()
                     streams += MediaStream(
                         url = variantUrl,
-                        kind = if (audioUrl == null) MediaStreamKind.AUDIO_VIDEO else MediaStreamKind.VIDEO,
+                        kind = if (renditions.isEmpty()) MediaStreamKind.AUDIO_VIDEO else MediaStreamKind.VIDEO,
                         mimeType = "application/vnd.apple.mpegurl",
                         codecs = attrs["CODECS"],
                         bitrate = bandwidth?.takeIf { it > 0 },
                         width = width,
                         height = height,
                         frameRate = attrs["FRAME-RATE"]?.toFloatOrNull()?.takeIf { it > 0f },
-                        isDefault = streams.isEmpty()
+                        isDefault = streams.none { it.kind == MediaStreamKind.VIDEO || it.kind == MediaStreamKind.AUDIO_VIDEO }
                     )
-                    if (audioUrl != null) {
+                    renditions.forEach { rendition ->
                         streams += MediaStream(
-                            url = audioUrl,
+                            url = rendition.url,
                             kind = MediaStreamKind.AUDIO,
                             mimeType = "application/vnd.apple.mpegurl",
-                            codecs = attrs["CODECS"]?.split(',')
-                                ?.firstOrNull { it.trim().startsWith("mp4a", ignoreCase = true) }?.trim()
+                            codecs = rendition.codecs ?: attrs["CODECS"]?.split(',')
+                                ?.firstOrNull { it.trim().startsWith("mp4a", ignoreCase = true) }?.trim(),
+                            isDefault = rendition.isDefault
                         )
                     }
                 }
@@ -87,6 +96,12 @@ class HlsMasterPlaylistParser {
 
         return EngineResult.Success(ResolvedMedia(sourceUrl = baseUrl, streams = streams.distinctBy { it.url to it.kind }))
     }
+
+    private data class AudioRendition(
+        val url: String,
+        val codecs: String?,
+        val isDefault: Boolean
+    )
 
     private fun parseAttributes(value: String): Map<String, String> {
         val result = linkedMapOf<String, String>()
@@ -120,12 +135,28 @@ class HlsMasterPlaylistParser {
             val scheme = base.substringBefore("://")
             return "$scheme:$ref"
         }
-        val authority = base.substringAfter("://").substringBefore('/')
+
+        val baseWithoutFragment = base.substringBefore('#')
+        val baseWithoutQueryOrFragment = baseWithoutFragment.substringBefore('?')
+        if (ref.startsWith('#')) return baseWithoutFragment + ref
+        if (ref.startsWith('?')) return baseWithoutQueryOrFragment + ref
+
+        val authority = base.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore('#')
         val origin = base.substringBefore("://") + "://" + authority
-        if (ref.startsWith('/')) return origin + normalizePath(ref)
-        val basePath = base.substringBefore('#').substringBefore('?').substringAfter("://").substringAfter('/', "")
-        val directory = basePath.substringBeforeLast('/', "").let { if (it.isEmpty()) "/" else "/$it/" }
-        return origin + normalizePath(directory + ref)
+        val referencePath = ref.substringBefore('?').substringBefore('#')
+        val suffix = ref.substring(referencePath.length)
+        if (referencePath.isEmpty()) return baseWithoutQueryOrFragment + suffix
+
+        val basePath = baseWithoutQueryOrFragment.substringAfter("://").substringAfter('/', "")
+        val combinedPath = if (referencePath.startsWith('/')) {
+            referencePath
+        } else {
+            val directory = basePath.substringBeforeLast('/', "").let {
+                if (it.isEmpty()) "/" else "/$it/"
+            }
+            directory + referencePath
+        }
+        return origin + normalizePath(combinedPath) + suffix
     }
 
     private fun normalizePath(path: String): String {
