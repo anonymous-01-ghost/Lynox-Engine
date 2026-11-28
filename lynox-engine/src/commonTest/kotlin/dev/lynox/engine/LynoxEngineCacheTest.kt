@@ -110,6 +110,23 @@ class LynoxEngineCacheTest {
         assertEquals(2, calls)
     }
 
+
+    @Test
+    fun failedMetadataLookupIsNotCached() = runTest {
+        var calls = 0
+        val provider = object : MetadataProvider {
+            override suspend fun getMediaInfo(mediaId: String): EngineResult<MediaItem> {
+                calls++
+                return EngineResult.Failure(EngineError.Network("temporary failure"))
+            }
+        }
+        val engine = LynoxEngine(metadataProvider = provider)
+
+        assertIs<EngineResult.Failure>(engine.getMediaInfo("video-1"))
+        assertIs<EngineResult.Failure>(engine.getMediaInfo("video-1"))
+        assertEquals(2, calls)
+    }
+
     @Test
     fun metadataIsCachedByNormalizedId() = runTest {
         var calls = 0
