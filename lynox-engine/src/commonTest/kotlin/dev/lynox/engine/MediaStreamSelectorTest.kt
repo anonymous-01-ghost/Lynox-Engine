@@ -151,7 +151,7 @@ class MediaStreamSelectorTest {
             isAutoselect = false
         )
         val automatic = audio("https://cdn.test/auto.m3u8", 128_000).copy(
-            language = "es-ES",
+            language = "es",
             isAutoselect = true
         )
 
