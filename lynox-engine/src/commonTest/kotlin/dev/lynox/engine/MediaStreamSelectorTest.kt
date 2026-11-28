@@ -130,6 +130,42 @@ class MediaStreamSelectorTest {
 
 
     @Test
+    fun prefersRequestedAudioLanguageOverHigherBitrate() {
+        val english = audio("https://cdn.test/en.m3u8", 96_000).copy(language = "en-US")
+        val spanish = audio("https://cdn.test/es.m3u8", 256_000).copy(language = "es")
+
+        val result = assertIs<EngineResult.Success<MediaStream>>(
+            selector.select(
+                listOf(spanish, english),
+                MediaSelectionRequest(preferredLanguage = "en")
+            )
+        )
+
+        assertEquals(english.url, result.value.url)
+    }
+
+    @Test
+    fun prefersAutoselectWhenRequestedAfterLanguage() {
+        val manual = audio("https://cdn.test/manual.m3u8", 128_000).copy(
+            language = "es",
+            isAutoselect = false
+        )
+        val automatic = audio("https://cdn.test/auto.m3u8", 128_000).copy(
+            language = "es-ES",
+            isAutoselect = true
+        )
+
+        val result = assertIs<EngineResult.Success<MediaStream>>(
+            selector.select(
+                listOf(manual, automatic),
+                MediaSelectionRequest(preferredLanguage = "es", preferAutoselect = true)
+            )
+        )
+
+        assertEquals(automatic.url, result.value.url)
+    }
+
+    @Test
     fun filtersByPlaybackMimeCodecAndDeviceLimits() {
         val unsupportedCodec = MediaStream(
             url = "https://cdn.test/av1.mp4",
