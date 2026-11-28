@@ -382,7 +382,7 @@ class LynoxEngineCacheTest {
         val engine = LynoxEngine(catalogProvider = catalog)
 
         assertIs<EngineResult.Failure>(engine.searchChannels(CatalogRequest(query = "  ")))
-        assertIs<EngineResult.Failure>(engine.searchPlaylists(CatalogRequest(query = "\\t")))
+        assertIs<EngineResult.Failure>(engine.searchPlaylists(CatalogRequest(query = "\t")))
         assertEquals(0, calls)
     }
 
