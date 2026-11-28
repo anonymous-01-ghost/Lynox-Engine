@@ -114,4 +114,43 @@ class HlsManifestResolverTest {
         )
         assertIs<EngineError.Network>(result.error)
     }
+
+    @Test
+    fun rejectsNonHttpRedirectDestination() = runTest {
+        val resolver = HlsManifestResolver(object : ManifestHttpClient {
+            override suspend fun get(request: ManifestHttpRequest) =
+                ManifestHttpResponse(
+                    statusCode = 200,
+                    body = playlist,
+                    contentType = "application/vnd.apple.mpegurl",
+                    finalUrl = "file:///private/manifest.m3u8"
+                )
+        })
+
+        val result = assertIs<EngineResult.Failure>(
+            resolver.resolve("https://media.example.test/master.m3u8")
+        )
+        assertIs<EngineError.InvalidRequest>(result.error)
+    }
+
+    @Test
+    fun acceptsHttpRedirectDestinationAndUsesItAsBaseUrl() = runTest {
+        val resolver = HlsManifestResolver(object : ManifestHttpClient {
+            override suspend fun get(request: ManifestHttpRequest) =
+                ManifestHttpResponse(
+                    statusCode = 200,
+                    body = playlist,
+                    contentType = "application/vnd.apple.mpegurl",
+                    finalUrl = "https://cdn.example.test/redirected/master.m3u8"
+                )
+        })
+
+        val result = assertIs<EngineResult.Success<dev.lynox.engine.extractor.ResolvedMedia>>(
+            resolver.resolve("https://media.example.test/master.m3u8")
+        )
+        assertEquals(
+            "https://cdn.example.test/redirected/video/720.m3u8",
+            result.value.streams.single().url
+        )
+    }
 }
