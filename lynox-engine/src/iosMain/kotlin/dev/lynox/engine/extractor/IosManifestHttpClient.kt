@@ -83,7 +83,7 @@ private class ManifestResponseDelegate(
             dataTask.cancel()
             return
         }
-        receivedData.appendData(didReceiveData)
+        receivedData.appendBytes(didReceiveData.bytes, didReceiveData.length)
     }
 
     override fun URLSession(
