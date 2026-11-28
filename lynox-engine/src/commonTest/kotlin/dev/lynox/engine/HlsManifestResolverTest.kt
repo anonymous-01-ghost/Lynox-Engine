@@ -8,6 +8,7 @@ import dev.lynox.engine.model.EngineError
 import dev.lynox.engine.model.EngineResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlinx.coroutines.test.runTest
 
@@ -113,6 +114,20 @@ class HlsManifestResolverTest {
             resolver.resolve("https://media.example.test/master.m3u8")
         )
         assertIs<EngineError.Network>(result.error)
+    }
+
+
+    @Test
+    fun propagatesCoroutineCancellation() = runTest {
+        val resolver = HlsManifestResolver(object : ManifestHttpClient {
+            override suspend fun get(request: ManifestHttpRequest): ManifestHttpResponse {
+                throw kotlinx.coroutines.CancellationException("request cancelled")
+            }
+        })
+
+        assertFailsWith<kotlinx.coroutines.CancellationException> {
+            resolver.resolve("https://media.example.test/master.m3u8")
+        }
     }
 
     @Test
