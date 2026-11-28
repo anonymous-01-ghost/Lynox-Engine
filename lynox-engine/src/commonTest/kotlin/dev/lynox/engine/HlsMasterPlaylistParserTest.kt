@@ -54,7 +54,7 @@ video/1080.m3u8
     @Test
     fun preservesAllAudioRenditionsInReferencedGroup() {
         val manifest = """#EXTM3U
-#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="English",LANGUAGE="en",DEFAULT=YES,URI="audio/en.m3u8"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="English",LANGUAGE="en-US",DEFAULT=YES,AUTOSELECT=YES,URI="audio/en.m3u8"
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Spanish",LANGUAGE="es",DEFAULT=NO,URI="audio/es.m3u8"
 #EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1920x1080,AUDIO="audio",CODECS="avc1.640028,mp4a.40.2"
 video/1080.m3u8
@@ -74,6 +74,10 @@ video/1080.m3u8
             audio.map { it.url }.toSet()
         )
         assertEquals(1, audio.count { it.isDefault })
+        val english = audio.single { it.language == "en-US" }
+        assertEquals("English", english.label)
+        assertTrue(english.isAutoselect)
+        assertEquals("es", audio.single { it.url.endsWith("es.m3u8") }.language)
     }
 
     @Test
